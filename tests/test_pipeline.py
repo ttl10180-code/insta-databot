@@ -133,7 +133,34 @@ def test_overflow_guard():
     print(f"      → 육안 확인용: {path}")
 
 
+# ------------------------------------------------- 빈 환경변수 방어
+def test_empty_env():
+    print("\n[빈 환경변수 처리]")
+    import importlib, os
+    from src import config as cfg
+    saved = {k: os.environ.get(k) for k in
+             ["WEATHER_NX", "WEATHER_REGION", "REALESTATE_LAWD_CDS", "CARD_HANDLE"]}
+    # GitHub Actions 는 정의되지 않은 vars.X 를 빈 문자열로 주입한다
+    for k in saved:
+        os.environ[k] = ""
+    try:
+        importlib.reload(cfg)
+        check("빈 WEATHER_NX → 기본값 60", cfg.WEATHER_NX == 60, str(cfg.WEATHER_NX))
+        check("빈 WEATHER_REGION → 기본값 서울", cfg.WEATHER_REGION == "서울", cfg.WEATHER_REGION)
+        check("빈 REALESTATE_LAWD_CDS → 기본 5개구", len(cfg.REALESTATE_LAWD_CDS) == 5,
+              str(cfg.REALESTATE_LAWD_CDS))
+        check("빈 CARD_HANDLE → 기본 핸들", cfg.HANDLE.startswith("@"), cfg.HANDLE)
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        importlib.reload(cfg)
+
+
 def main() -> int:
+    test_empty_env()
     test_base_time()
     test_parsers()
     test_realestate_parse()
