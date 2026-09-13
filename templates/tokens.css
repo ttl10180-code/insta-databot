@@ -1,0 +1,83 @@
+/* ============================================================
+   DESIGN TOKENS — 이 파일이 "항상 동일한 글씨체·위치"의 근원.
+   카드 내용이 바뀌어도 이 값들은 절대 변하지 않는다.
+   색상만 카드 종류별로 --accent 를 덮어쓴다.
+   ============================================================ */
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../fonts/PretendardVariable.woff2') format('woff2-variations');
+  font-weight: 45 920;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  /* ---- 캔버스 (인스타 정사각 1080x1080) ---- */
+  --canvas: 1080px;
+  --pad: 76px;              /* 좌우 여백 — 모든 카드 동일 */
+  --pad-top: 68px;
+  --pad-bottom: 62px;
+
+  /* ---- 타입 스케일 (px 고정, 캔버스가 고정이므로 rem 불필요) ---- */
+  --fs-eyebrow: 26px;       /* 상단 카테고리 라벨 */
+  --fs-date: 26px;
+  --fs-title: 68px;         /* 메인 타이틀 */
+  --fs-subtitle: 30px;
+  --fs-hero: 128px;         /* 대표 수치 */
+  --fs-hero-unit: 40px;
+  --fs-label: 23px;         /* 항목명 */
+  --fs-value: 38px;         /* 항목값 */
+  --fs-value-sm: 31px;
+  --fs-delta: 24px;
+  --fs-footer: 23px;
+
+  --lh-tight: 1.12;
+  --lh-snug: 1.28;
+  --lh-normal: 1.5;
+
+  /* ---- 웨이트 ---- */
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+  --w-extrabold: 800;
+
+  /* ---- 자간: 한글은 음수 자간이 기본 ---- */
+  --ls-tight: -0.035em;
+  --ls-normal: -0.02em;
+  --ls-wide: 0.08em;
+
+  /* ---- 색상 (기본 다크) ---- */
+  --bg: #0E1420;
+  --bg-elev: #18202F;
+  --bg-elev-2: #212B3D;
+  --line: rgba(255,255,255,0.10);
+  --line-strong: rgba(255,255,255,0.18);
+  --fg: #FFFFFF;
+  --fg-muted: #9AA7BD;
+  --fg-dim: #6B7A93;
+
+  --accent: #4D8DFF;        /* 카드 종류별로 덮어씀 */
+  --accent-ink: #0E1420;
+
+  --up: #FF6B6B;            /* 상승(한국 관례: 빨강) */
+  --down: #4DA3FF;          /* 하락: 파랑 */
+  --flat: #9AA7BD;
+
+  /* ---- 등급 색 (대기질 4단계) ---- */
+  --g1: #3FC1C9;  /* 좋음 */
+  --g2: #4DA3FF;  /* 보통 */
+  --g3: #FFB454;  /* 나쁨 */
+  --g4: #FF6B6B;  /* 매우나쁨 */
+
+  /* ---- 라운드 ---- */
+  --r-sm: 14px;
+  --r-md: 22px;
+  --r-lg: 30px;
+}
+
+/* 카드 종류별 액센트 — 구조는 그대로, 색만 교체 */
+.theme-weather   { --accent: #57C3FF; }
+.theme-air       { --accent: #5AD6A8; }
+.theme-realestate{ --accent: #FFB454; }
+.theme-oil       { --accent: #FF8A6B; }

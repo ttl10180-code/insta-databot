@@ -1,0 +1,107 @@
+name: _publish (reusable)
+
+# 카드 렌더 → GitHub Pages 업로드 → 공개 URL 확인 → 인스타그램 게시
+# 각 스케줄 워크플로가 이 워크플로를 호출한다.
+
+on:
+  workflow_call:
+    inputs:
+      cards:
+        description: '생성할 카드 종류 (공백 구분). 예: "weather air"'
+        required: true
+        type: string
+      carousel:
+        description: '여러 장을 캐러셀 한 게시물로 묶을지'
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: '게시 없이 이미지만 만들기'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: instagram-publish          # 동시 게시 방지 (한도/중복 게시 사고 예방)
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write               # gh-pages 브랜치에 카드 이미지를 푸시
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 이모지 폰트 설치
+        # 본문 폰트(Pretendard)는 저장소에 포함되어 @font-face 로 로드되지만,
+        # 이모지는 시스템 폰트가 필요하다. 없으면 □□□ 로 렌더링된다.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fonts-noto-color-emoji
+          fc-cache -f
+
+      - name: Playwright Chromium 설치
+        run: python -m playwright install --with-deps chromium
+
+      - name: 카드 생성
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          CARD_HANDLE: ${{ vars.CARD_HANDLE }}
+          WEATHER_NX: ${{ vars.WEATHER_NX }}
+          WEATHER_NY: ${{ vars.WEATHER_NY }}
+          WEATHER_REGION: ${{ vars.WEATHER_REGION }}
+          AIR_SIDO: ${{ vars.AIR_SIDO }}
+          REALESTATE_LAWD_CDS: ${{ vars.REALESTATE_LAWD_CDS }}
+          OPINET_AREA: ${{ vars.OPINET_AREA }}
+        run: python -m src.main render ${{ inputs.cards }}
+
+      - name: 결과 이미지 아티팩트 업로드
+        uses: actions/upload-artifact@v4
+        with:
+          name: cards-${{ github.run_id }}
+          path: out/
+          retention-days: 14
+
+      - name: GitHub Pages 로 카드 배포
+        id: pages
+        run: bash scripts/publish_pages.sh
+
+      - name: 공개 URL 준비 대기
+        if: ${{ !inputs.dry_run }}
+        env:
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+        run: python scripts/wait_for_pages.py out
+
+      - name: 인스타그램 게시
+        if: ${{ !inputs.dry_run }}
+        env:
+          DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
+          OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_LOGIN_MODE: ${{ vars.IG_LOGIN_MODE }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+          CARD_HANDLE: ${{ vars.CARD_HANDLE }}
+          WEATHER_NX: ${{ vars.WEATHER_NX }}
+          WEATHER_NY: ${{ vars.WEATHER_NY }}
+          WEATHER_REGION: ${{ vars.WEATHER_REGION }}
+          AIR_SIDO: ${{ vars.AIR_SIDO }}
+          REALESTATE_LAWD_CDS: ${{ vars.REALESTATE_LAWD_CDS }}
+          OPINET_AREA: ${{ vars.OPINET_AREA }}
+        run: |
+          python -m src.main post ${{ inputs.cards }} --reuse \
+            ${{ inputs.carousel && '--carousel' || '' }}

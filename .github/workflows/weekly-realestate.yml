@@ -1,0 +1,20 @@
+name: 매주 월요일 · 아파트 실거래
+
+on:
+  schedule:
+    # 월요일 09:00 KST = 일요일 00:00 UTC
+    - cron: '0 0 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '게시 없이 이미지만 생성'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    uses: ./.github/workflows/_publish.yml
+    with:
+      cards: 'realestate'
+      dry_run: ${{ inputs.dry_run == true }}
+    secrets: inherit

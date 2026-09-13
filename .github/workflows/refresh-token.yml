@@ -1,0 +1,57 @@
+name: 인스타그램 토큰 갱신
+
+# 장기 토큰은 60일이면 만료된다. 만료되면 자동 게시가 통째로 멈추므로
+# 45일마다 갱신해 저장소 Secret 에 다시 써 넣는다.
+#
+# 필요: GH_PAT (repo 권한이 있는 Personal Access Token) Secret
+# ※ Facebook Login + 페이지 액세스 토큰을 쓰면 토큰이 만료되지 않으므로
+#    이 워크플로 자체가 필요 없다. (SETUP.md 참고)
+
+on:
+  schedule:
+    - cron: '0 3 1 * *'      # 매월 1일 12:00 KST
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: 토큰 갱신
+        id: refresh
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_APP_ID: ${{ secrets.IG_APP_ID }}
+          IG_APP_SECRET: ${{ secrets.IG_APP_SECRET }}
+          IG_LOGIN_MODE: ${{ vars.IG_LOGIN_MODE }}
+          IG_API_VERSION: ${{ vars.IG_API_VERSION }}
+        run: |
+          python -m src.main refresh-token > token.json
+          echo "token=$(python -c "import json;print(json.load(open('token.json'))['access_token'])")" >> "$GITHUB_OUTPUT"
+
+      - name: Secret 갱신
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          NEW_TOKEN: ${{ steps.refresh.outputs.token }}
+        run: |
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::GH_PAT 가 없어 Secret 을 자동 갱신하지 못했습니다."
+            echo "::warning::아래 토큰을 IG_ACCESS_TOKEN Secret 에 직접 붙여넣으세요."
+            echo "::warning::(토큰은 보안상 로그에 출력하지 않습니다. Artifacts 의 token.json 을 확인하세요.)"
+            exit 0
+          fi
+          gh secret set IG_ACCESS_TOKEN --body "$NEW_TOKEN" --repo "${{ github.repository }}"
+          echo "✅ IG_ACCESS_TOKEN 갱신 완료"
+
+      - name: 토큰 파일 보관 (PAT 미설정 시 수동 반영용)
+        uses: actions/upload-artifact@v4
+        with:
+          name: refreshed-token
+          path: token.json
+          retention-days: 3

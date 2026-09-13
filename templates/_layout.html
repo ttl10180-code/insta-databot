@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+</head>
+<body>
+<div class="card {{ theme }}">
+
+  <header class="hd">
+    <span class="hd__eyebrow">{{ eyebrow }}</span>
+    <span class="hd__date">{{ date_label }}</span>
+  </header>
+
+  <div class="ttl">
+    <h1 class="ttl__main" data-autofit="68,44">{{ title }}</h1>
+    {% if subtitle %}<p class="ttl__sub" data-autofit="30,22">{{ subtitle }}</p>{% endif %}
+  </div>
+
+  <main class="bd">
+    <div class="bd__fit">
+{% block body %}{% endblock %}
+    </div>
+  </main>
+
+  <footer class="ft">
+    <span class="ft__src">출처 <b>{{ source }}</b></span>
+    <span class="ft__handle">{{ handle }}</span>
+  </footer>
+
+</div>
+
+<script>
+/* 자동 축소: 슬롯 높이를 넘기면 폰트 크기만 줄인다.
+   → 글자 수가 달라져도 블록의 y좌표와 높이는 그대로 유지된다.
+   폰트가 실제로 로드된 뒤에 측정해야 정확하므로 fonts.ready 를 기다린다. */
+document.fonts.ready.then(function () {
+  document.querySelectorAll('[data-autofit]').forEach(function (el) {
+    var parts = el.dataset.autofit.split(',');
+    var size  = parseFloat(parts[0]);
+    var min   = parseFloat(parts[1]);
+    el.style.fontSize = size + 'px';
+    var guard = 0;
+    while (el.scrollHeight > el.clientHeight + 1 && size > min && guard++ < 120) {
+      size -= 1;
+      el.style.fontSize = size + 'px';
+    }
+  });
+  /* 최후의 안전장치: 내용이 본문 슬롯보다 길면 본문 블록만 통째로 축소한다.
+     푸터를 침범하거나 캔버스 밖으로 넘치는 일이 구조적으로 불가능해진다. */
+  var bd = document.querySelector('.bd');
+  var fit = document.querySelector('.bd__fit');
+  if (bd && fit) {
+    var avail = bd.clientHeight;
+    var need = fit.scrollHeight;
+    if (need > avail + 1) {
+      var k = Math.max(0.72, avail / need);
+      fit.style.transformOrigin = 'top center';
+      fit.style.transform = 'scale(' + k + ')';
+      fit.style.width = (100 / k) + '%';
+      fit.style.marginLeft = ((100 - 100 / k) / 2) + '%';
+      document.documentElement.setAttribute('data-scaled', k.toFixed(3));
+    }
+  }
+  document.documentElement.setAttribute('data-render-ready', '1');
+});
+</script>
+</body>
+</html>

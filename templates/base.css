@@ -1,0 +1,294 @@
+/* ============================================================
+   BASE LAYOUT — 모든 카드가 공유하는 고정 뼈대.
+   헤더/타이틀/본문/푸터의 y좌표와 높이가 카드 종류와 무관하게 동일하다.
+   내용 길이가 달라져도 슬롯 높이가 고정이라 레이아웃이 밀리지 않는다.
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: var(--canvas);
+  height: var(--canvas);
+  overflow: hidden;
+  background: var(--bg);
+}
+
+body {
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: var(--w-medium);
+  letter-spacing: var(--ls-normal);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  font-feature-settings: 'tnum' 1;   /* 숫자 고정폭 — 값이 바뀌어도 폭이 안 흔들림 */
+}
+
+/* 한국어 조판 기본값: 어절 단위 줄바꿈 */
+h1, h2, h3, p, span, div, li {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+.card {
+  position: relative;
+  width: var(--canvas);
+  height: var(--canvas);
+  padding: var(--pad-top) var(--pad) var(--pad-bottom);
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(1100px 620px at 84% -12%,
+      color-mix(in srgb, var(--accent) 26%, transparent) 0%, transparent 62%),
+    var(--bg);
+}
+
+/* 좌상단 액센트 바 — 모든 카드 동일 위치 */
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 7px;
+  background: linear-gradient(90deg,
+    var(--accent) 0%, var(--accent) 18%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 18%,
+    color-mix(in srgb, var(--accent) 22%, transparent) 100%);
+}
+
+/* ---------- HEADER (고정 높이 62px) ---------- */
+.hd {
+  height: 62px;
+  flex: 0 0 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.hd__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-eyebrow);
+  font-weight: var(--w-extrabold);
+  letter-spacing: var(--ls-wide);
+  color: var(--accent);
+  text-transform: uppercase;
+}
+.hd__eyebrow::before {
+  content: '';
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.hd__date {
+  font-size: var(--fs-date);
+  font-weight: var(--w-semibold);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- TITLE (고정 높이 178px, 자동 축소) ---------- */
+.ttl {
+  height: 178px;
+  flex: 0 0 178px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+  padding-top: 8px;
+}
+.ttl__main {
+  font-size: var(--fs-title);
+  font-weight: var(--w-extrabold);
+  line-height: var(--lh-tight);
+  letter-spacing: var(--ls-tight);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ttl__sub {
+  font-size: var(--fs-subtitle);
+  font-weight: var(--w-medium);
+  color: var(--fg-muted);
+  line-height: var(--lh-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---------- BODY (남는 공간 전부, 내용만 교체되는 영역) ---------- */
+.bd {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  padding: 10px 0 6px;
+}
+
+.bd__fit {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+/* ---------- FOOTER (고정 높이 46px) ---------- */
+.ft {
+  height: 46px;
+  flex: 0 0 46px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-size: var(--fs-footer);
+  font-weight: var(--w-medium);
+  color: var(--fg-dim);
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  box-sizing: content-box;
+}
+.ft__src { display: inline-flex; align-items: center; gap: 9px; }
+.ft__src b { color: var(--fg-muted); font-weight: var(--w-semibold); }
+.ft__handle { font-weight: var(--w-semibold); color: var(--fg-muted); }
+
+/* ============================================================
+   공용 컴포넌트 — 카드 종류가 달라도 같은 모양으로 재사용
+   ============================================================ */
+
+/* 대표 수치 */
+.hero { display: flex; align-items: flex-end; gap: 20px; }
+.hero__num {
+  font-size: var(--fs-hero);
+  font-weight: var(--w-extrabold);
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+}
+.hero__unit {
+  font-size: var(--fs-hero-unit);
+  font-weight: var(--w-bold);
+  color: var(--fg-muted);
+  padding-bottom: 16px;
+}
+.hero__side { margin-left: auto; text-align: right; padding-bottom: 12px; }
+
+/* 배지 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-delta);
+  font-weight: var(--w-bold);
+  background: var(--bg-elev-2);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+.badge--up   { background: color-mix(in srgb, var(--up) 20%, transparent);   color: var(--up); }
+.badge--down { background: color-mix(in srgb, var(--down) 20%, transparent); color: var(--down); }
+.badge--flat { background: var(--bg-elev-2); color: var(--flat); }
+.badge--g1 { background: color-mix(in srgb, var(--g1) 20%, transparent); color: var(--g1); }
+.badge--g2 { background: color-mix(in srgb, var(--g2) 20%, transparent); color: var(--g2); }
+.badge--g3 { background: color-mix(in srgb, var(--g3) 20%, transparent); color: var(--g3); }
+.badge--g4 { background: color-mix(in srgb, var(--g4) 20%, transparent); color: var(--g4); }
+
+/* 통계 타일 그리드 */
+.grid { display: grid; gap: 18px; }
+.grid--2 { grid-template-columns: repeat(2, 1fr); }
+.grid--3 { grid-template-columns: repeat(3, 1fr); }
+.grid--4 { grid-template-columns: repeat(4, 1fr); }
+
+.tile {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 20px 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.tile__label {
+  font-size: var(--fs-label);
+  font-weight: var(--w-semibold);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile__value {
+  font-size: var(--fs-value);
+  font-weight: var(--w-extrabold);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tile__value--sm { font-size: var(--fs-value-sm); }
+.tile__unit { font-size: 0.55em; font-weight: var(--w-semibold); color: var(--fg-muted); margin-left: 4px; }
+.tile__foot { font-size: var(--fs-delta); font-weight: var(--w-semibold); color: var(--fg-dim); }
+
+/* 순위 리스트 */
+.rank { display: flex; flex-direction: column; gap: 10px; }
+.rank__row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 22px;
+  min-width: 0;
+}
+.rank__no {
+  flex: 0 0 42px;
+  font-size: 30px;
+  font-weight: var(--w-extrabold);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.rank__body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rank__name {
+  font-size: 29px;
+  font-weight: var(--w-bold);
+  letter-spacing: var(--ls-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rank__meta {
+  font-size: var(--fs-label);
+  font-weight: var(--w-medium);
+  color: var(--fg-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rank__value {
+  flex: 0 0 auto;
+  text-align: right;
+  font-size: 33px;
+  font-weight: var(--w-extrabold);
+  letter-spacing: var(--ls-tight);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 시간별 예보 스트립 */
+.strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.strip__cell {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 16px 8px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.strip__time { font-size: 23px; font-weight: var(--w-semibold); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.strip__icon { font-size: 38px; line-height: 1; }
+.strip__temp { font-size: 32px; font-weight: var(--w-extrabold); font-variant-numeric: tabular-nums; }
+.strip__pop  { font-size: 21px; font-weight: var(--w-semibold); color: var(--down); font-variant-numeric: tabular-nums; }
+
+/* 디바이더 */
+.divider { height: 1px; background: var(--line); }

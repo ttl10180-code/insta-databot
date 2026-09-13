@@ -1,0 +1,44 @@
+{% extends "_layout.html" %}
+{% block body %}
+    <div class="hero">
+      <span class="hero__num">{{ d.tmax }}</span><span class="hero__unit">°C 최고</span>
+      <span class="hero__side">
+        <span class="badge badge--down">최저 {{ d.tmin }}°C</span>
+      </span>
+    </div>
+
+    <div class="grid grid--3">
+      <div class="tile">
+        <span class="tile__label">하늘</span>
+        <span class="tile__value tile__value--sm">{{ d.sky_icon }} {{ d.sky_text }}</span>
+      </div>
+      <div class="tile">
+        <span class="tile__label">강수확률 최대</span>
+        <span class="tile__value">{{ d.pop_max }}<span class="tile__unit">%</span></span>
+      </div>
+      <div class="tile">
+        <span class="tile__label">습도</span>
+        <span class="tile__value">{{ d.reh }}<span class="tile__unit">%</span></span>
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="tile">
+        <span class="tile__label">최대 풍속</span>
+        <span class="tile__value">{{ d.wsd }}<span class="tile__unit">m/s · {{ d.wsd_text }}</span></span>
+      </div>
+      <div class="tile">
+        <span class="tile__label">일교차</span>
+        <span class="tile__value">{{ d.gap }}<span class="tile__unit">°C</span></span>
+      </div>
+    </div>
+
+    <div class="strip">
+{% for h in d.hours %}      <div class="strip__cell">
+        <span class="strip__time">{{ h.time }}</span>
+        <span class="strip__icon">{{ h.icon }}</span>
+        <span class="strip__temp">{{ h.temp }}°</span>
+        <span class="strip__pop">{{ h['pop'] }}%</span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}

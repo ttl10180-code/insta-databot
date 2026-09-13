@@ -1,0 +1,20 @@
+name: 평일 아침 · 유가
+
+on:
+  schedule:
+    # 평일 08:00 KST = 23:00 UTC 전날 (일~목 UTC)
+    - cron: '0 23 * * 0-4'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '게시 없이 이미지만 생성'
+        type: boolean
+        default: false
+
+jobs:
+  run:
+    uses: ./.github/workflows/_publish.yml
+    with:
+      cards: 'oil'
+      dry_run: ${{ inputs.dry_run == true }}
+    secrets: inherit

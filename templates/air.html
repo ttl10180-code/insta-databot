@@ -1,0 +1,33 @@
+{% extends "_layout.html" %}
+{% block body %}
+    <div class="hero">
+      <span class="hero__num">{{ d.khai }}</span><span class="hero__unit">통합대기환경지수</span>
+      <span class="hero__side">
+        <span class="badge badge--g{{ d.khai_grade }}">{{ d.khai_text }}</span>
+      </span>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="tile">
+        <span class="tile__label">미세먼지 PM10</span>
+        <span class="tile__value">{{ d.pm10 }}<span class="tile__unit">㎍/㎥</span></span>
+        <span class="tile__foot">{{ d.pm10_text }}</span>
+      </div>
+      <div class="tile">
+        <span class="tile__label">초미세먼지 PM2.5</span>
+        <span class="tile__value">{{ d.pm25 }}<span class="tile__unit">㎍/㎥</span></span>
+        <span class="tile__foot">{{ d.pm25_text }}</span>
+      </div>
+    </div>
+
+    <div class="rank">
+{% for r in d.worst %}      <div class="rank__row">
+        <span class="rank__no">{{ loop.index }}</span>
+        <span class="rank__body">
+          <span class="rank__name">{{ r.name }}</span>
+          <span class="rank__meta">PM10 {{ r.pm10 }}㎍/㎥ · {{ r.grade_text }}</span>
+        </span>
+        <span class="rank__value">{{ r.pm25 }}<span class="tile__unit">㎍/㎥</span></span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}
