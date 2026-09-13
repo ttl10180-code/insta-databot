@@ -73,16 +73,29 @@ def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
     deals: list[dict] = []
     for attempt in range(2):
         deals = []
+        ok_gu, failed_gu = [], []
         for cd in lawd_cds:
             try:
                 rows = _fetch_one(cd, ym)
             except http.NoData:
                 rows = []
+            except Exception as e:                # noqa: BLE001
+                # 이 API 는 해외에서 붙을 때 간헐적으로 타임아웃이 난다.
+                # 한 구가 실패했다고 카드를 통째로 버리지 않는다.
+                log.warning("실거래 %s 조회 실패, 건너뜀: %s",
+                            config.LAWD_NAMES.get(cd, cd), e)
+                failed_gu.append(cd)
+                continue
+            ok_gu.append(cd)
             for it in rows:
                 d = _parse_deal(it, cd)
                 if d:
                     deals.append(d)
             log.info("실거래 %s %s: %d건 누적", config.LAWD_NAMES.get(cd, cd), ym, len(deals))
+        if failed_gu:
+            log.warning("조회 실패한 시군구 %d곳은 집계에서 제외합니다: %s",
+                        len(failed_gu),
+                        ", ".join(config.LAWD_NAMES.get(c, c) for c in failed_gu))
         if len(deals) >= MIN_DEALS or attempt == 1:
             break
         ym = _prev_month(ym)          # 월초라 표본이 적으면 직전 달로
@@ -91,17 +104,21 @@ def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
     if not deals:
         raise http.NoData("03", f"{ym} 실거래 데이터가 없습니다")
 
-    # 전월 대비 평균가 변화
+    # 전월 대비 평균가 변화. 실패해도 카드는 나가야 하므로 조용히 건너뛴다.
+    # 비교 대상은 이번 달에 성공한 시군구로 맞춘다 (표본이 다르면 증감이 왜곡된다).
     prev_ym = _prev_month(ym)
     prev_deals: list[dict] = []
-    for cd in lawd_cds:
+    for cd in ok_gu:
         try:
             for it in _fetch_one(cd, prev_ym):
                 d = _parse_deal(it, cd)
                 if d:
                     prev_deals.append(d)
-        except http.NoData:
-            continue
+        except Exception as e:                    # noqa: BLE001
+            log.warning("전월(%s) %s 조회 실패, 증감 계산에서 제외: %s",
+                        prev_ym, config.LAWD_NAMES.get(cd, cd), e)
+            prev_deals = []
+            break
 
     avg = sum(d["man_won"] for d in deals) / len(deals)
     prev_avg = (sum(d["man_won"] for d in prev_deals) / len(prev_deals)) if prev_deals else None
@@ -118,7 +135,7 @@ def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
     return {
         "ym": ym,
         "ym_label": f"{int(ym[:4])}년 {int(ym[4:])}월",
-        "gu_names": [config.LAWD_NAMES.get(c, c) for c in lawd_cds],
+        "gu_names": [config.LAWD_NAMES.get(c, c) for c in ok_gu],
         "deal_count": f"{len(deals):,}",
         "avg_price": f"{avg / 10000:.1f}",                 # 만원 → 억
         "per_pyeong": f"{round(sum(d['per_pyeong'] for d in deals) / len(deals)):,}",
