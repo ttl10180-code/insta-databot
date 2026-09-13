@@ -14,11 +14,18 @@ fi
 git config --global user.name  "github-actions[bot]"
 git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
-  git worktree add --checkout "$WORKDIR" "$BRANCH"
+# actions/checkout 은 현재 브랜치만 얕게 가져오므로 gh-pages 의 로컬 참조가 없다.
+# 원격에 브랜치가 있어도 곧바로 worktree 를 만들면 'invalid reference' 로 죽는다.
+# 그래서 먼저 원격 참조를 받아온다.
+git fetch --no-tags --prune origin \
+  "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH" 2>/dev/null || true
+
+if git show-ref --verify --quiet "refs/remotes/origin/$BRANCH"; then
+  echo "기존 $BRANCH 브랜치를 이어서 씁니다."
+  git worktree add --force -B "$BRANCH" "$WORKDIR" "refs/remotes/origin/$BRANCH"
 else
-  echo "gh-pages 브랜치가 없어 새로 만듭니다."
-  git worktree add --detach "$WORKDIR"
+  echo "$BRANCH 브랜치가 없어 새로 만듭니다."
+  git worktree add --force --detach "$WORKDIR"
   git -C "$WORKDIR" checkout --orphan "$BRANCH"
   git -C "$WORKDIR" reset --hard
 fi
