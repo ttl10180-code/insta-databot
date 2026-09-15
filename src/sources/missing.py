@@ -17,10 +17,13 @@ from __future__ import annotations
 
 import base64
 import logging
+import ssl
 import time
 from datetime import datetime, timedelta
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.ssl_ import create_urllib3_context
 
 from src import config
 from src.common import http
@@ -29,6 +32,25 @@ log = logging.getLogger(__name__)
 
 URL = "https://www.safe182.go.kr/api/lcm/amberList.do"
 PHOTO_URL = "https://www.safe182.go.kr/blobImgView.do"
+
+
+class _LegacyTLSAdapter(HTTPAdapter):
+    """안전Dream 서버의 TLS 설정이 오래돼서 요즘 OpenSSL 기본값으로는
+    핸드셰이크가 거절된다(SSLV3_ALERT_HANDSHAKE_FAILURE).
+    보안수준만 한 단계 낮추고 인증서 검증은 그대로 둔다."""
+
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = create_urllib3_context(ciphers="DEFAULT@SECLEVEL=1")
+        ctx.options |= getattr(ssl, "OP_LEGACY_SERVER_CONNECT", 0x4)
+        kwargs["ssl_context"] = ctx
+        return super().init_poolmanager(*args, **kwargs)
+
+
+def _session() -> requests.Session:
+    s = requests.Session()
+    s.mount("https://www.safe182.go.kr", _LegacyTLSAdapter())
+    s.headers["User-Agent"] = "insta-databot/1.0"
+    return s
 
 # 대상 구분 코드 → 카드에 쓸 짧은 말
 TARGET_LABEL = {
@@ -51,8 +73,7 @@ def _post(params: dict) -> dict:
     last: Exception | None = None
     for attempt in range(1, http.MAX_RETRIES + 1):
         try:
-            r = requests.post(URL, data=body, timeout=http.DEFAULT_TIMEOUT,
-                              headers={"User-Agent": "insta-databot/1.0"})
+            r = _session().post(URL, data=body, timeout=http.DEFAULT_TIMEOUT)
             r.raise_for_status()
             doc = http._parse(r.text)
             return doc if isinstance(doc, dict) else {}
@@ -122,10 +143,10 @@ def _fetch_photo(row: dict) -> str | None:
     r = None
     for attempt in (1, 2):
         try:
-            r = requests.get(PHOTO_URL, params={"msspsnIdntfccd": idn, "rptDscd": rpt},
-                             timeout=http.DEFAULT_TIMEOUT,
-                             headers={"User-Agent": "insta-databot/1.0",
-                                      "Referer": "https://www.safe182.go.kr/"})
+            r = _session().get(PHOTO_URL,
+                               params={"msspsnIdntfccd": idn, "rptDscd": rpt},
+                               timeout=http.DEFAULT_TIMEOUT,
+                               headers={"Referer": "https://www.safe182.go.kr/"})
             r.raise_for_status()
             break
         except requests.RequestException as e:
