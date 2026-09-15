@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import base64
 import logging
+import time
 from datetime import datetime, timedelta
 
 import requests
@@ -42,14 +43,27 @@ ROW_SIZE = 100
 
 
 def _post(params: dict) -> dict:
+    """안전Dream 은 국내 기관 서버라 해외 러너에서 간헐적으로 연결이 안 된다.
+    (되는 때도 있고 연결 타임아웃이 나는 때도 있다 — 지수 백오프로 버틴다.)"""
     body = dict(params,
                 esntlId=config.SAFE182_ESNTL_ID,
                 authKey=config.SAFE182_AUTH_KEY)
-    r = requests.post(URL, data=body, timeout=http.DEFAULT_TIMEOUT,
-                      headers={"User-Agent": "insta-databot/1.0"})
-    r.raise_for_status()
-    doc = http._parse(r.text)
-    return doc if isinstance(doc, dict) else {}
+    last: Exception | None = None
+    for attempt in range(1, http.MAX_RETRIES + 1):
+        try:
+            r = requests.post(URL, data=body, timeout=http.DEFAULT_TIMEOUT,
+                              headers={"User-Agent": "insta-databot/1.0"})
+            r.raise_for_status()
+            doc = http._parse(r.text)
+            return doc if isinstance(doc, dict) else {}
+        except requests.RequestException as e:
+            last = e
+            if attempt < http.MAX_RETRIES:
+                wait = http.BACKOFF ** attempt
+                log.warning("안전Dream 연결 실패(%s/%s) · %.1fs 후 재시도",
+                            attempt, http.MAX_RETRIES, wait)
+                time.sleep(wait)
+    raise http.PortalError("99", f"안전Dream 에 연결하지 못했습니다: {last}")
 
 
 def _check(doc: dict) -> None:
@@ -105,14 +119,21 @@ def _fetch_photo(row: dict) -> str | None:
     rpt = str(row.get("rptDscd") or "").strip()
     if not idn:
         return None
-    try:
-        r = requests.get(PHOTO_URL, params={"msspsnIdntfccd": idn, "rptDscd": rpt},
-                         timeout=http.DEFAULT_TIMEOUT,
-                         headers={"User-Agent": "insta-databot/1.0",
-                                  "Referer": "https://www.safe182.go.kr/"})
-        r.raise_for_status()
-    except requests.RequestException as e:
-        log.info("사진을 받지 못했습니다 (%s): %s", idn, e)
+    r = None
+    for attempt in (1, 2):
+        try:
+            r = requests.get(PHOTO_URL, params={"msspsnIdntfccd": idn, "rptDscd": rpt},
+                             timeout=http.DEFAULT_TIMEOUT,
+                             headers={"User-Agent": "insta-databot/1.0",
+                                      "Referer": "https://www.safe182.go.kr/"})
+            r.raise_for_status()
+            break
+        except requests.RequestException as e:
+            if attempt == 2:
+                log.info("사진을 받지 못했습니다 (%s): %s", idn, e)
+                return None
+            time.sleep(2)
+    if r is None:
         return None
     if not r.content or not r.headers.get("Content-Type", "").startswith("image"):
         return None
