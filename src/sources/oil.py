@@ -37,7 +37,9 @@ def _delta_text(diff: float | None) -> str:
 def fetch(area: str = None) -> dict:
     area = area or config.OPINET_AREA
     if not config.OPINET_KEY:
-        raise SystemExit("[설정 오류] OPINET_KEY 가 비어 있습니다. SETUP.md 참고.")
+        # 다른 카드와 같게 — 키가 없으면 이 카드만 조용히 건너뛴다.
+        # SystemExit 를 던지면 같은 실행의 다른 카드까지 죽는다.
+        raise http.NoData("03", "OPINET_KEY 가 없습니다 (오피넷에서 발급 필요)")
 
     log.info("오피넷 전국 평균 유가 조회")
     doc = http.get(f"{BASE}/avgAllPrice.do",
