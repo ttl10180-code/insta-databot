@@ -1,8 +1,96 @@
-<!doctype html><meta charset=utf-8><title>data cards</title>
-<h1>공공데이터 인스타 카드</h1><ul>
-<li><a href="cards/20260915-weather.jpg">20260915-weather.jpg</a></li>
-<li><a href="cards/20260915-air.jpg">20260915-air.jpg</a></li>
-<li><a href="cards/20260914-weather.jpg">20260914-weather.jpg</a></li>
-<li><a href="cards/20260914-realestate.jpg">20260914-realestate.jpg</a></li>
-<li><a href="cards/20260914-air.jpg">20260914-air.jpg</a></li>
-</ul>
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오늘의 데이터 카드</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 20px 16px 56px; background: #0A1020; color: #E8EDF7;
+         font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+         max-width: 620px; margin-inline: auto; }
+  header h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -.02em; }
+  header p { margin: 0 0 26px; color: #8FA0BF; font-size: 14px; }
+  .card { margin-bottom: 34px; }
+  .card h2 { font-size: 17px; margin: 0 0 10px; display: flex; align-items: center; gap: 9px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dot.weather { background: #3B82F6; } .dot.air { background: #14B8A6; }
+  .dot.realestate { background: #F59E0B; } .dot.oil { background: #F97316; }
+  .dot.lifeindex { background: #84CC16; } .dot.boxoffice { background: #8B5CF6; }
+  .dot.boxoffice_weekly { background: #8B5CF6; } .dot.exchange { background: #06B6D4; }
+  .dot.price { background: #F43F5E; } .dot.apply { background: #D97706; }
+  img { width: 100%; border-radius: 16px; display: block; }
+  .cap { margin-top: 12px; background: #141C31; border: 1px solid #22304F;
+          border-radius: 14px; padding: 14px; }
+  pre { margin: 0 0 12px; white-space: pre-wrap; word-break: break-word;
+         font-family: inherit; font-size: 14px; line-height: 1.65; color: #CBD7EC; }
+  button { width: 100%; padding: 12px; border: 0; border-radius: 10px; background: #2563EB;
+            color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; }
+  button.done { background: #16A34A; }
+  a.story { display: block; margin-top: 10px; padding: 12px; text-align: center;
+             border: 1px solid #2E3E61; border-radius: 10px; color: #9FC2FF;
+             text-decoration: none; font-size: 14px; font-weight: 600; }
+  details { margin-top: 30px; color: #8FA0BF; font-size: 13px; }
+  details a { color: #7FB3FF; }
+  li { margin: 4px 0; }
+  footer { margin-top: 34px; color: #5D6C88; font-size: 12px; text-align: center; }
+</style></head>
+<body>
+<header>
+  <h1>오늘의 데이터 카드</h1>
+  <p>9월 15일 · 이미지를 길게 눌러 저장하고, 캡션은 복사 버튼으로</p>
+</header>
+
+    <section class="card">
+      <h2><span class="dot weather"></span>날씨</h2>
+      <a href="cards/20260915-weather.jpg" target="_blank"><img src="cards/20260915-weather.jpg" alt="weather" loading="lazy"></a>
+      <div class="cap">
+        <pre id="c-weather"></pre>
+        <button type="button" data-for="c-weather">캡션 복사</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2><span class="dot air"></span>대기질</h2>
+      <a href="cards/20260915-air.jpg" target="_blank"><img src="cards/20260915-air.jpg" alt="air" loading="lazy"></a>
+      <div class="cap">
+        <pre id="c-air"></pre>
+        <button type="button" data-for="c-air">캡션 복사</button>
+      </div>
+    </section>
+    <section class="card">
+      <h2><span class="dot exchange"></span>환율</h2>
+      <a href="cards/20260915-exchange.jpg" target="_blank"><img src="cards/20260915-exchange.jpg" alt="exchange" loading="lazy"></a>
+      <div class="cap">
+        <pre id="c-exchange">💱 9월 15일 환율
+
+달러 매매기준율은 1,345.30원, 전일 대비 -1.10원입니다.
+
+· 🇺🇸 미국 달러 1,345.30원 (전일 대비 -1.10원)
+· 🇯🇵 일본 엔 100 872.07원 (전일 대비 -4.18원)
+· 🇪🇺 유로 1,554.09원 (전일 대비 -6.72원)
+· 🇨🇳 중국 위안 200.54원 (전일 대비 -0.05원)
+
+송금 보낼 때 1,358.75원 / 받을 때 1,331.84원.
+매매기준율은 은행 고시 기준이라 실제 환전 금액과는 차이가 있습니다.
+
+📊 출처 : 한국수출입은행 현재환율 API / 공공데이터포털
+
+#환율 #달러환율 #엔화 #유로 #위안 #오늘의환율 #해외여행 #직구 #공공데이터 #오늘의데이터</pre>
+        <button type="button" data-for="c-exchange">캡션 복사</button>
+      </div>
+      <a class="story" href="cards/20260915-exchange-story.jpg" target="_blank">스토리 버전 (1080×1920) 열기</a>
+    </section>
+<details><summary>지난 카드 보기</summary><ul><li><a href="cards/20260914-weather.jpg">20260914-weather.jpg</a></li><li><a href="cards/20260914-realestate.jpg">20260914-realestate.jpg</a></li><li><a href="cards/20260914-air.jpg">20260914-air.jpg</a></li></ul></details>
+<footer>마지막 갱신 2026-09-15 23:29 KST · 출처 공공데이터포털</footer>
+<script>
+document.querySelectorAll('button[data-for]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = document.getElementById(b.dataset.for).textContent;
+    navigator.clipboard.writeText(t).then(function () {
+      b.textContent = '복사됨'; b.classList.add('done');
+      setTimeout(function () { b.textContent = '캡션 복사'; b.classList.remove('done'); }, 1600);
+    });
+  });
+});
+</script>
+</body></html>
