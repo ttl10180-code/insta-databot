@@ -10,6 +10,7 @@ KAMIS 사이트의 별도 키 대신 공공데이터포털의
 """
 from __future__ import annotations
 
+import json
 import logging
 from datetime import datetime, timedelta
 
@@ -103,17 +104,9 @@ def _fetch_category(ctgry: str, since_dt: datetime, until_dt: datetime) -> list[
         # 조건을 전부 떼고 맨몸으로 한 번 찔러, 응답이 어떻게 생겼는지 남긴다.
         # (부류 필터까지 떼야 한다 — 코드값이 틀렸을 가능성도 있다)
         doc = _call({"pageNo": 1, "numOfRows": 3, "returnType": "JSON"})
-        log.warning("부류 %s · 조건 없는 맨몸 호출 → 최상위 키 %s",
-                    ctgry, sorted(doc.keys()) if isinstance(doc, dict) else type(doc).__name__)
-        body = doc.get("body") or {}
-        if isinstance(body, dict):
-            log.warning("  body 키 %s · totalCount=%s",
-                        sorted(body.keys()), body.get("totalCount"))
-        probe = _rows_of(doc) or [r for r in http.as_list(doc.get("data")) if isinstance(r, dict)]
-        if probe:
-            log.warning("  첫 레코드: %s", {k: probe[0][k] for k in list(probe[0])[:16]})
-        else:
-            log.warning("  레코드도 0건 (%s)", _result_of(doc) or "헤더 없음")
+        # 응답을 그대로 찍는다. 인증키는 응답에 실리지 않으니 안전하다.
+        log.warning("부류 %s · 조건 없는 맨몸 응답 원문:\n%s", ctgry,
+                    json.dumps(doc, ensure_ascii=False)[:1200])
         return []
 
     retail = [r for r in rows if "소매" in str(r.get("se_nm", ""))]
