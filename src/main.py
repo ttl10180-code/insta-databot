@@ -26,15 +26,20 @@ logging.basicConfig(
 log = logging.getLogger("databot")
 
 
-def make_card(kind: str, now: datetime, use_sample: bool):
+def make_card(kind: str, now: datetime, use_sample: bool, story: bool = False):
+    """피드 카드를 만들고, story=True 면 같은 데이터로 스토리 버전도 함께 만든다."""
     if use_sample:
         template, ctx, caption = sample.build(kind, now)
     else:
         template, ctx, caption = cards.CARDS[kind](now)
     stamp = now.strftime("%Y%m%d")
-    out = config.OUT_DIR / f"{stamp}-{kind}.jpg"
-    path = render.render_card(template, ctx, out)
-    return path, caption
+    path = render.render_card(template, ctx, config.OUT_DIR / f"{stamp}-{kind}.jpg")
+    story_path = None
+    if story:
+        story_path = render.render_card(
+            template, ctx, config.OUT_DIR / f"{stamp}-{kind}-story.jpg",
+            size=render.STORY, layout="_story.html")
+    return path, caption, story_path
 
 
 def public_url(path) -> str:
@@ -50,9 +55,13 @@ def cmd_render(args) -> int:
     now = datetime.now(config.KST)
     results = []
     for kind in args.kinds:
-        path, caption = make_card(kind, now, args.sample)
-        results.append({"kind": kind, "file": str(path), "caption": caption})
-        print(f"✅ {kind}: {path}")
+        path, caption, story_path = make_card(kind, now, args.sample,
+                                              story=getattr(args, "story", False))
+        row = {"kind": kind, "file": str(path), "caption": caption}
+        if story_path:
+            row["story"] = str(story_path)
+        results.append(row)
+        print(f"✅ {kind}: {path}" + (f" (+스토리 {story_path.name})" if story_path else ""))
     (config.OUT_DIR / "captions.json").write_text(
         json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0
@@ -95,7 +104,8 @@ def cmd_post(args) -> int:
         made = []
         for kind in args.kinds:
             try:
-                made.append((kind, *make_card(kind, now, args.sample)))
+                path, caption, _story = make_card(kind, now, args.sample)
+                made.append((kind, path, caption))
             except Exception as e:                # noqa: BLE001
                 log.error("%s 카드 생성 실패, 건너뜁니다: %s", kind, e)
     if not made:
@@ -144,6 +154,7 @@ def main(argv=None) -> int:
     r = sub.add_parser("render", help="카드 이미지만 생성")
     r.add_argument("kinds", nargs="+", choices=kinds)
     r.add_argument("--sample", action="store_true", help="샘플 데이터로 디자인 확인 (API 키 불필요)")
+    r.add_argument("--story", action="store_true", help="스토리(1080x1920) 버전도 함께 생성")
     r.set_defaults(func=cmd_render)
 
     o = sub.add_parser("post", help="카드 생성 후 인스타그램 게시")

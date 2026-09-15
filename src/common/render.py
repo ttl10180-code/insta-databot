@@ -19,6 +19,7 @@ from src import config
 log = logging.getLogger(__name__)
 
 CANVAS = 1080
+STORY = (1080, 1920)
 MAX_BYTES = 8 * 1024 * 1024
 
 _env = Environment(
@@ -33,8 +34,16 @@ def build_html(template: str, context: dict) -> str:
     return _env.get_template(template).render(**context)
 
 
-def render_card(template: str, context: dict, out_path: Path) -> Path:
-    """템플릿과 데이터를 받아 JPEG 카드 한 장을 만든다."""
+def render_card(template: str, context: dict, out_path: Path,
+                size: tuple[int, int] = (CANVAS, CANVAS),
+                layout: str | None = None) -> Path:
+    """템플릿과 데이터를 받아 JPEG 카드 한 장을 만든다.
+
+    size 와 layout 을 바꾸면 같은 카드 정의로 스토리(1080x1920)도 뽑는다.
+    카드 템플릿이 `{% extends layout %}` 로 되어 있어 본문 블록은 그대로 재사용된다.
+    """
+    if layout:
+        context = dict(context, layout=layout)
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -49,7 +58,7 @@ def render_card(template: str, context: dict, out_path: Path) -> Path:
             browser = p.chromium.launch(args=["--font-render-hinting=none",
                                               "--force-color-profile=srgb"])
             page = browser.new_page(
-                viewport={"width": CANVAS, "height": CANVAS},
+                viewport={"width": size[0], "height": size[1]},
                 device_scale_factor=1,
             )
             page.goto(tmp.as_uri(), wait_until="networkidle")
@@ -61,13 +70,13 @@ def render_card(template: str, context: dict, out_path: Path) -> Path:
     finally:
         tmp.unlink(missing_ok=True)
 
-    jpeg_path = _to_jpeg(png_path, out_path.with_suffix(".jpg"))
+    jpeg_path = _to_jpeg(png_path, out_path.with_suffix(".jpg"), size)
     png_path.unlink(missing_ok=True)
     log.info("카드 생성: %s (%.1f KB)", jpeg_path.name, jpeg_path.stat().st_size / 1024)
     return jpeg_path
 
 
-def _to_jpeg(src: Path, dst: Path) -> Path:
+def _to_jpeg(src: Path, dst: Path, size: tuple[int, int] = (CANVAS, CANVAS)) -> Path:
     """PNG → sRGB JPEG. 8MB 넘으면 품질을 낮춰 재저장."""
     im = Image.open(src)
     if im.mode != "RGB":
@@ -75,8 +84,8 @@ def _to_jpeg(src: Path, dst: Path) -> Path:
         rgba = im.convert("RGBA")
         bg.paste(rgba, mask=rgba.split()[-1])
         im = bg
-    if im.size != (CANVAS, CANVAS):
-        im = im.resize((CANVAS, CANVAS), Image.LANCZOS)
+    if im.size != size:
+        im = im.resize(size, Image.LANCZOS)
 
     for quality in (94, 88, 82, 75, 68):
         im.save(dst, "JPEG", quality=quality, optimize=True, progressive=True,

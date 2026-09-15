@@ -1,0 +1,27 @@
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.count }}</span><span class="hero__unit">건</span></div>
+      <span class="hero__badge">{{ d.period_label }} 접수 시작</span>
+    </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+      <div class="chip"><span class="chip__label">총 공급</span>
+        <span class="chip__value">{{ d.total_households }}<small>세대</small></span></div>
+      <div class="chip"><span class="chip__label">지역</span>
+        <span class="chip__value">{{ d.area_count }}<small>곳</small></span></div>
+      <div class="chip"><span class="chip__label">가장 빠른 접수</span>
+        <span class="chip__value">{{ d.head.begin_label }}</span></div>
+    </div>
+    <div class="rows">
+{% for r in d['items'][:2] %}      <div class="row">
+        <span class="row__no">{{ loop.index }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.name }}</span>
+          <span class="row__meta">{{ r.area }} · {{ r.households }}세대 · {{ r.begin_label }}~{{ r.end_label }}</span>
+        </span>
+        <span class="row__value">{{ r.begin_label }}</span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}

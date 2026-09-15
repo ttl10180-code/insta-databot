@@ -1,9 +1,9 @@
-name: 매일 아침 · 날씨 + 대기질 + 생활지수
+name: 평일 · 환율
 
+# 매매기준율은 영업일 오전에 고시된다. 평일 11:10 KST.
 on:
   schedule:
-    # 07:30 KST (UTC+9) = 22:30 UTC 전날
-    - cron: '30 22 * * *'
+    - cron: '10 2 * * 1-5'        # 02:10 UTC = 11:10 KST, 월~금
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,7 +17,6 @@ jobs:
       contents: write
     uses: ./.github/workflows/_publish.yml
     with:
-      cards: 'weather air lifeindex'
-      carousel: true
+      cards: 'exchange'
       dry_run: ${{ inputs.dry_run == true }}
     secrets: inherit

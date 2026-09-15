@@ -1,33 +1,27 @@
-{% extends "_layout.html" %}
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.pm25 }}</span><span class="hero__unit">㎍/㎥</span></div>
+      <span class="hero__badge hero__badge--grade g{{ d.pm25_grade }}">초미세먼지 {{ d.pm25_text }}</span>
+    </div>
+{% endblock %}
 {% block body %}
-    <div class="hero">
-      <span class="hero__num">{{ d.khai }}</span><span class="hero__unit">통합대기환경지수</span>
-      <span class="hero__side">
-        <span class="badge badge--g{{ d.khai_grade }}">{{ d.khai_text }}</span>
-      </span>
+    <div class="chips">
+      <div class="chip"><span class="chip__label">미세먼지 PM10</span>
+        <span class="chip__value">{{ d.pm10 }}<small>{{ d.pm10_text }}</small></span></div>
+      <div class="chip"><span class="chip__label">통합대기환경지수</span>
+        <span class="chip__value">{{ d.khai }}<small>{{ d.khai_text }}</small></span></div>
+      <div class="chip"><span class="chip__label">측정소</span>
+        <span class="chip__value">{{ d.station_count }}<small>곳 평균</small></span></div>
     </div>
-
-    <div class="grid grid--2">
-      <div class="tile">
-        <span class="tile__label">미세먼지 PM10</span>
-        <span class="tile__value">{{ d.pm10 }}<span class="tile__unit">㎍/㎥</span></span>
-        <span class="tile__foot">{{ d.pm10_text }}</span>
-      </div>
-      <div class="tile">
-        <span class="tile__label">초미세먼지 PM2.5</span>
-        <span class="tile__value">{{ d.pm25 }}<span class="tile__unit">㎍/㎥</span></span>
-        <span class="tile__foot">{{ d.pm25_text }}</span>
-      </div>
-    </div>
-
-    <div class="rank">
-{% for r in d.worst %}      <div class="rank__row">
-        <span class="rank__no">{{ loop.index }}</span>
-        <span class="rank__body">
-          <span class="rank__name">{{ r.name }}</span>
-          <span class="rank__meta">PM10 {{ r.pm10 }}㎍/㎥ · {{ r.grade_text }}</span>
+    <div class="rows">
+{% for r in d.worst[:2] %}      <div class="row">
+        <span class="row__no">{{ loop.index }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.name }}</span>
+          <span class="row__meta">PM10 {{ r.pm10 }}㎍/㎥ · {{ r.grade_text }}</span>
         </span>
-        <span class="rank__value">{{ r.pm25 }}<span class="tile__unit">㎍/㎥</span></span>
+        <span class="row__value">{{ r.pm25 }}</span>
       </div>
 {% endfor %}    </div>
 {% endblock %}

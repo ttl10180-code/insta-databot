@@ -1,0 +1,31 @@
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.usd.rate }}</span><span class="hero__unit">원</span></div>
+      <span class="hero__badge hero__badge--{{ d.usd.dir }}">{{ d.usd.delta }}</span>
+    </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+{% for c in d.others[:3] %}      <div class="chip"><span class="chip__label">{{ c.flag }} {{ c.name }}</span>
+        <span class="chip__value">{{ c.rate }}<small>원</small></span></div>
+{% endfor %}    </div>
+    <div class="rows">
+      <div class="row">
+        <span class="row__no">💸</span>
+        <span class="row__body">
+          <span class="row__name">보낼 때</span>
+          <span class="row__meta">은행이 파는 값 (전신환 매도율)</span>
+        </span>
+        <span class="row__value">{{ d.usd.tts }}원</span>
+      </div>
+      <div class="row">
+        <span class="row__no">💰</span>
+        <span class="row__body">
+          <span class="row__name">받을 때</span>
+          <span class="row__meta">은행이 사는 값 (전신환 매입률)</span>
+        </span>
+        <span class="row__value">{{ d.usd.ttb }}원</span>
+      </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<style>
+  @font-face { font-family: "Pretendard"; src: url("../fonts/PretendardVariable.woff2") format("woff2-variations");
+               font-weight: 45 920; font-display: block; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1640px; height: 624px; font-family: "Pretendard", sans-serif; }
+  .cv { width: 1640px; height: 624px; position: relative; overflow: hidden; display: flex;
+        align-items: center; padding: 0 86px; color: #fff;
+        background: radial-gradient(90% 150% at 20% 12%, #12437F 0%, #0A2450 45%, #050D22 100%); }
+  .txt { z-index: 2; }
+  .txt h1 { font-size: 78px; font-weight: 800; letter-spacing: -.02em; line-height: 1.12; }
+  .txt p  { margin-top: 20px; font-size: 32px; font-weight: 500; color: rgba(255,255,255,.72); }
+  .txt .tags { margin-top: 28px; display: flex; gap: 12px; }
+  .txt .tags span { font-size: 25px; font-weight: 700; padding: 11px 22px; border-radius: 999px;
+                    background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.16); }
+  .cats { position: absolute; right: 46px; bottom: 10px; display: flex; align-items: flex-end; z-index: 2; }
+  .cats img { width: 236px; height: 236px; object-fit: contain; margin-left: -34px;
+              filter: drop-shadow(0 22px 30px rgba(0,0,0,.5)); }
+</style></head>
+<body><div class="cv">
+  <div class="txt">
+    <h1>오늘의 데이터</h1>
+    <p>공공데이터포털에서 매일 아침, 카드 한 장으로</p>
+    <div class="tags"><span>날씨</span><span>대기질</span><span>부동산</span><span>유가</span></div>
+  </div>
+  <div class="cats">
+    <img src="../assets/mascot/odi-weather.png"><img src="../assets/mascot/odi-air.png"><img src="../assets/mascot/odi-realestate.png"><img src="../assets/mascot/odi-oil.png">
+  </div>
+</div></body></html>

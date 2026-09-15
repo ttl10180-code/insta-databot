@@ -1,31 +1,27 @@
-{% extends "_layout.html" %}
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.avg_price }}</span><span class="hero__unit">억</span></div>
+      <span class="hero__badge hero__badge--{{ d.delta_dir }}">{{ d.delta_text }}</span>
+    </div>
+{% endblock %}
 {% block body %}
-    <div class="hero">
-      <span class="hero__num">{{ d.avg_price }}</span><span class="hero__unit">억 평균 거래가</span>
-      <span class="hero__side">
-        <span class="badge badge--{{ d.delta_dir }}">{{ d.delta_text }}</span>
-      </span>
+    <div class="chips">
+      <div class="chip"><span class="chip__label">신고 건수</span>
+        <span class="chip__value">{{ d.deal_count }}<small>건</small></span></div>
+      <div class="chip"><span class="chip__label">3.3㎡당</span>
+        <span class="chip__value">{{ d.per_pyeong }}<small>만원</small></span></div>
+      <div class="chip"><span class="chip__label">대상</span>
+        <span class="chip__value">{{ d.gu_names|length }}<small>개 구</small></span></div>
     </div>
-
-    <div class="grid grid--2">
-      <div class="tile">
-        <span class="tile__label">거래 건수</span>
-        <span class="tile__value">{{ d.deal_count }}<span class="tile__unit">건</span></span>
-      </div>
-      <div class="tile">
-        <span class="tile__label">3.3㎡당 평균</span>
-        <span class="tile__value">{{ d.per_pyeong }}<span class="tile__unit">만원</span></span>
-      </div>
-    </div>
-
-    <div class="rank">
-{% for r in d.top %}      <div class="rank__row">
-        <span class="rank__no">{{ loop.index }}</span>
-        <span class="rank__body">
-          <span class="rank__name">{{ r.name }}</span>
-          <span class="rank__meta">{{ r.dong }} · 전용 {{ r.area }}㎡ · {{ r.floor }}층</span>
+    <div class="rows">
+{% for r in d.top[:2] %}      <div class="row">
+        <span class="row__no">{{ loop.index }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.name }}</span>
+          <span class="row__meta">{{ r.dong }} · 전용 {{ r.area }}㎡</span>
         </span>
-        <span class="rank__value">{{ r.price }}</span>
+        <span class="row__value">{{ r.price }}</span>
       </div>
 {% endfor %}    </div>
 {% endblock %}

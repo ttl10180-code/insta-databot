@@ -1,0 +1,61 @@
+name: 배경 아트 생성 (수동)
+
+# 주제·상황별 배경을 한 번만 만들어 저장소에 캐시한다.
+# 매일 생성하지 않으므로 비용은 최초 1회로 끝난다.
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '이미 있는 것도 다시 생성'
+        type: boolean
+        default: false
+      only:
+        description: '이 테마만 (비우면 전체). 예: weather'
+        type: string
+        default: ''
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 의존성 설치
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests pillow
+
+      - name: 배경 생성
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python tools/build_backgrounds.py \
+            ${{ inputs.force && '--force' || '' }} \
+            ${{ inputs.only != '' && format('--only {0}', inputs.only) || '' }}
+
+      - name: 미리보기 아티팩트
+        uses: actions/upload-artifact@v4
+        with:
+          name: backgrounds-${{ github.run_id }}
+          path: assets/bg/
+          retention-days: 14
+
+      - name: 저장소에 커밋
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/bg
+          if git diff --cached --quiet; then
+            echo "새로 만들어진 배경이 없습니다."
+          else
+            git commit -m "배경 아트 생성: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          fi

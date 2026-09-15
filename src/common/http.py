@@ -18,9 +18,11 @@ import xmltodict
 
 log = logging.getLogger(__name__)
 
-DEFAULT_TIMEOUT = 20
-MAX_RETRIES = 3
-BACKOFF = 2.0
+# (연결, 읽기) 초. 해외 러너 → 국내 정부 서버는 연결 자체가 느릴 때가 있어
+# 연결 타임아웃을 넉넉히 잡는다. GitHub Actions 에서 20초로는 부족했다.
+DEFAULT_TIMEOUT = (25, 60)
+MAX_RETRIES = 4
+BACKOFF = 2.5
 
 # 포털 공통 결과코드
 OK_CODES = {"00", "000"}
@@ -72,7 +74,7 @@ def _check_header(doc: Any) -> None:
     raise PortalError(code, msg or "unknown service error")
 
 
-def get(url: str, params: dict, *, timeout: int = DEFAULT_TIMEOUT,
+def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
         retries: int = MAX_RETRIES, check_header: bool = True) -> Any:
     """GET 후 JSON/XML 자동 판별 파싱. 일시적 오류는 지수 백오프 재시도."""
     last: Exception | None = None

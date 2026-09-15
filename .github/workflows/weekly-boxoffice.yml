@@ -1,9 +1,9 @@
-name: 매일 아침 · 날씨 + 대기질 + 생활지수
+name: 주간 · 주말 박스오피스
 
+# 주말 집계는 월요일 오전에 확정된다. 월요일 11:40 KST.
 on:
   schedule:
-    # 07:30 KST (UTC+9) = 22:30 UTC 전날
-    - cron: '30 22 * * *'
+    - cron: '40 2 * * 1'          # 02:40 UTC 월 = 11:40 KST 월
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,7 +17,6 @@ jobs:
       contents: write
     uses: ./.github/workflows/_publish.yml
     with:
-      cards: 'weather air lifeindex'
-      carousel: true
+      cards: 'boxoffice_weekly'
       dry_run: ${{ inputs.dry_run == true }}
     secrets: inherit

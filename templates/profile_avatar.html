@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<link rel="stylesheet" href="tokens.css">
+<style>
+  @font-face { font-family: "Pretendard"; src: url("../fonts/PretendardVariable.woff2") format("woff2-variations");
+               font-weight: 45 920; font-display: block; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { width: 1080px; height: 1080px; font-family: "Pretendard", sans-serif; }
+  .av { width: 1080px; height: 1080px; position: relative; overflow: hidden;
+        background: radial-gradient(120% 100% at 32% 18%, #1D5BC4 0%, #0B3A82 42%, #06132E 100%); }
+  .av::after { content: ""; position: absolute; inset: 0;
+               background: radial-gradient(48% 42% at 50% 54%, rgba(59,130,246,.55), transparent 70%); }
+  .av img { position: absolute; left: 47%; top: 50%; transform: translate(-50%, -50%);
+            width: 752px; height: 752px; object-fit: contain; z-index: 2;
+            filter: drop-shadow(0 34px 44px rgba(0,0,0,.5)); }
+</style></head>
+<body><div class="av"><img src="../assets/mascot/odi-weather.png" alt="오디"></div></body></html>

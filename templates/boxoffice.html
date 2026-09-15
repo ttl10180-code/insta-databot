@@ -1,0 +1,27 @@
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.top.audi_man }}</span><span class="hero__unit">만 명</span></div>
+      <span class="hero__badge">{{ d.top.move }} · 누적 {{ d.top.acc_man }}만</span>
+    </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+      <div class="chip"><span class="chip__label">개봉일</span>
+        <span class="chip__value">{{ d.top.open }}</span></div>
+      <div class="chip"><span class="chip__label">상영관</span>
+        <span class="chip__value">{{ d.top.screens }}<small>개</small></span></div>
+      <div class="chip"><span class="chip__label">집계 편수</span>
+        <span class="chip__value">{{ d.movie_count }}<small>편</small></span></div>
+    </div>
+    <div class="rows">
+{% for r in d.rows[1:3] %}      <div class="row">
+        <span class="row__no">{{ r.rank }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.title }}</span>
+          <span class="row__meta">{{ r.move }} · 누적 {{ r.acc_man }}만 명</span>
+        </span>
+        <span class="row__value">{{ r.audi_man }}만</span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}

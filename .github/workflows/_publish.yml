@@ -59,6 +59,10 @@ jobs:
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
+          EXIM_KEY: ${{ secrets.EXIM_KEY }}
+          KAMIS_KEY: ${{ secrets.KAMIS_KEY }}
+          KAMIS_ID: ${{ secrets.KAMIS_ID }}
           CARD_HANDLE: ${{ vars.CARD_HANDLE }}
           WEATHER_NX: ${{ vars.WEATHER_NX }}
           WEATHER_NY: ${{ vars.WEATHER_NY }}
@@ -66,7 +70,10 @@ jobs:
           AIR_SIDO: ${{ vars.AIR_SIDO }}
           REALESTATE_LAWD_CDS: ${{ vars.REALESTATE_LAWD_CDS }}
           OPINET_AREA: ${{ vars.OPINET_AREA }}
-        run: python -m src.main render ${{ inputs.cards }}
+          LIFEINDEX_AREA: ${{ vars.LIFEINDEX_AREA }}
+          LIFEINDEX_REGION: ${{ vars.LIFEINDEX_REGION }}
+          APPLY_AREAS: ${{ vars.APPLY_AREAS }}
+        run: python -m src.main render ${{ inputs.cards }} --story
 
       - name: 결과 이미지 아티팩트 업로드
         uses: actions/upload-artifact@v4
@@ -90,6 +97,10 @@ jobs:
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
+          KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
+          EXIM_KEY: ${{ secrets.EXIM_KEY }}
+          KAMIS_KEY: ${{ secrets.KAMIS_KEY }}
+          KAMIS_ID: ${{ secrets.KAMIS_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_LOGIN_MODE: ${{ vars.IG_LOGIN_MODE }}
@@ -102,6 +113,9 @@ jobs:
           AIR_SIDO: ${{ vars.AIR_SIDO }}
           REALESTATE_LAWD_CDS: ${{ vars.REALESTATE_LAWD_CDS }}
           OPINET_AREA: ${{ vars.OPINET_AREA }}
+          LIFEINDEX_AREA: ${{ vars.LIFEINDEX_AREA }}
+          LIFEINDEX_REGION: ${{ vars.LIFEINDEX_REGION }}
+          APPLY_AREAS: ${{ vars.APPLY_AREAS }}
         run: |
           python -m src.main post ${{ inputs.cards }} --reuse \
             ${{ inputs.carousel && '--carousel' || '' }}

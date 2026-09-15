@@ -4,38 +4,38 @@
 <meta charset="utf-8">
 <link rel="stylesheet" href="tokens.css">
 <link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="story.css">
 </head>
-<body>
+<body class="story">
 <div class="card {{ theme }}">
 {% if bg %}  <div class="bgart" style="--bg-art: url('../assets/bg/{{ bg }}.jpg')"></div>{% endif %}
 
-  <header class="hd">
-    <span class="hd__eyebrow">{{ eyebrow }}</span>
-    <span class="hd__date">{{ date_label }}</span>
-  </header>
+  <div class="st__safe">
+    <header class="hd">
+      <span class="hd__eyebrow">{{ eyebrow }}</span>
+      <span class="hd__date">{{ date_label }}</span>
+    </header>
 
-  <div class="ttl"><h1 data-autofit="62,36">{{ title }}</h1></div>
+    <div class="ttl"><h1 data-autofit="76,44">{{ title }}</h1></div>
 
-  <section class="hero">
+    <section class="hero">
 {% block hero %}{% endblock %}
 {% include "_mascot.html" %}
-  </section>
+    </section>
 
-  <main class="bd">
+    <main class="bd">
 {% block body %}{% endblock %}
-  </main>
+    </main>
 
-  <footer class="ft">
-    <span>출처 <b>{{ source }}</b></span>
-    <span class="ft__handle">{{ handle }}</span>
-  </footer>
+    <footer class="ft">
+      <span>출처 <b>{{ source }}</b></span>
+      <span class="ft__handle">{{ handle }}</span>
+    </footer>
+  </div>
 
 </div>
 
 <script>
-/* 타이틀이 길면 줄을 늘리는 대신 글자 크기만 줄인다.
-   → 글자 수가 달라져도 헤더·히어로·푸터의 y좌표는 그대로다.
-   폰트가 실제로 로드된 뒤 재야 정확하므로 fonts.ready 를 기다린다. */
 Promise.all([
   document.fonts.ready,
   ...Array.from(document.images).map(function (im) {
@@ -50,20 +50,16 @@ Promise.all([
       size -= 1; el.style.fontSize = size + 'px';
     }
   });
-  /* 대표 수치는 줄바꿈 대신 폭에 맞춰 줄인다 (예: "1,642.4") */
   var main = document.querySelector('.hero__main');
   var row  = document.querySelector('.hero__row');
   var num  = document.querySelector('.hero__num');
   if (main && row && num) {
-    var fs = 244, guard = 0;
-    while (row.scrollWidth > main.clientWidth && fs > 96 && guard++ < 200) {
+    var fs = 260, guard = 0;
+    num.style.fontSize = fs + 'px';
+    while (row.scrollWidth > main.clientWidth && fs > 110 && guard++ < 220) {
       fs -= 4; num.style.fontSize = fs + 'px';
     }
   }
-  /* 최후의 안전장치: 본문이 슬롯을 넘으면 본문 블록만 통째로 축소한다.
-     푸터를 침범하거나 캔버스 밖으로 나가는 일이 구조적으로 불가능해진다. */
-  /* overflow:hidden 이면 scrollHeight 가 clientHeight 와 같아져 가드가 안 걸린다.
-     그래서 자식들의 실제 레이아웃 높이를 직접 잰다. */
   var bd = document.querySelector('.bd');
   var need = 0;
   if (bd && bd.children.length) {
@@ -73,7 +69,7 @@ Promise.all([
   }
   if (bd && need > bd.clientHeight + 1) {
     var k = Math.max(0.7, bd.clientHeight / need);
-    bd.style.transformOrigin = 'bottom center';
+    bd.style.transformOrigin = 'top center';
     bd.style.transform = 'scale(' + k + ')';
   }
   document.documentElement.setAttribute('data-render-ready', '1');

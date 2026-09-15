@@ -1,9 +1,9 @@
-name: 매일 아침 · 날씨 + 대기질 + 생활지수
+name: 주간 · 아파트 청약 일정
 
+# 한 주 시작에 이번 2주 청약 일정을 정리해 올린다. 월요일 08:10 KST.
 on:
   schedule:
-    # 07:30 KST (UTC+9) = 22:30 UTC 전날
-    - cron: '30 22 * * *'
+    - cron: '10 23 * * 0'         # 23:10 UTC 일 = 08:10 KST 월
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,7 +17,6 @@ jobs:
       contents: write
     uses: ./.github/workflows/_publish.yml
     with:
-      cards: 'weather air lifeindex'
-      carousel: true
+      cards: 'apply'
       dry_run: ${{ inputs.dry_run == true }}
     secrets: inherit

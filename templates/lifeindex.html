@@ -1,0 +1,21 @@
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.head.value }}</span><span class="hero__unit">지수</span></div>
+      <span class="hero__badge g{{ d.head.grade }}">{{ d.head.label }}{% if d.head.text %} {{ d.head.text }}{% endif %}</span>
+    </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+{% for i in d.others[:2] %}      <div class="chip"><span class="chip__label">{{ i.label }}</span>
+        <span class="chip__value">{{ i.value }}{% if i.text %}<small> {{ i.text }}</small>{% endif %}</span></div>
+{% endfor %}{% if d.others|length < 3 %}      <div class="chip"><span class="chip__label">기준</span>
+        <span class="chip__value">{{ d.base_time }}</span></div>
+{% endif %}    </div>
+    <div class="strip">
+{% for s in d.head.series[:5] %}      <div class="strip__cell">
+        <span class="strip__time">{{ s.label }}</span>
+        <span class="strip__temp">{{ s.value }}</span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}

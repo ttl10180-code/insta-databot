@@ -1,0 +1,62 @@
+/* 인스타그램 스토리 1080x1920.
+   피드 카드와 같은 토큰·같은 마스코트·같은 팔레트를 쓰고
+   세로 여백과 크기만 스토리에 맞게 키운다.
+   위아래는 인스타 UI 가 덮으므로 안전 영역 안에만 내용을 넣는다. */
+body.story { width: 1080px; height: 1920px; }
+
+.story .card {
+  height: 1920px;
+  padding: 0;
+  background: linear-gradient(168deg, var(--bg-a) 0%, var(--bg-b) 82%);
+}
+.story .card::before { top: -12%; right: -14%; width: 1000px; height: 1000px; }
+
+/* 안전 영역: 위 250px / 아래 270px 은 비운다 */
+.story .st__safe {
+  position: relative; z-index: 2;
+  height: 100%;
+  padding: 250px var(--pad) 270px;
+  display: flex; flex-direction: column;
+}
+
+.story .hd { height: 62px; flex: 0 0 62px; }
+.story .hd__eyebrow { font-size: 31px; }
+.story .hd__date { font-size: 29px; }
+
+.story .ttl { height: 170px; flex: 0 0 170px; margin-top: 28px; }
+.story .ttl h1 { max-width: 15ch; }
+
+.story .hero {
+  height: 520px; flex: 0 0 520px;
+  margin-top: 24px;
+  flex-direction: column; align-items: flex-start; justify-content: center;
+}
+.story .hero__main { width: 58%; gap: 24px; }
+.story .hero__num { font-size: 260px; }
+.story .hero__unit { font-size: 64px; }
+.story .hero__badge { font-size: 30px; padding: 14px 28px; }
+
+/* 스토리에서는 마스코트를 더 크게, 히어로 오른쪽 위로 */
+.story .odi {
+  right: -56px; top: 46%;
+  width: 468px; height: 468px;
+}
+
+.story .bd { margin-top: 34px; justify-content: flex-start; gap: 20px; }
+.story .chips { gap: 18px; }
+.story .chip { padding: 26px 26px 24px; }
+.story .chip__label { font-size: 28px; }
+.story .chip__value { font-size: 48px; }
+.story .rows { gap: 18px; margin-top: 22px; }
+.story .row { padding: 30px 32px; }
+.story .row__name { font-size: 36px; }
+.story .row__meta { font-size: 27px; }
+.story .row__value { font-size: 40px; }
+.story .row__no { font-size: 30px; }
+.story .strip { gap: 14px; margin-top: 22px; }
+.story .strip__cell { padding: 22px 6px 20px; }
+.story .strip__time { font-size: 26px; }
+.story .strip__icon { font-size: 40px; }
+.story .strip__temp { font-size: 36px; }
+
+.story .ft { height: 52px; flex: 0 0 52px; margin-top: 30px; font-size: 27px; }

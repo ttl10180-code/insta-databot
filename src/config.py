@@ -42,6 +42,14 @@ DATA_GO_KR_KEY = env("DATA_GO_KR_KEY")
 # 오피넷은 별도 사이트에서 발급받는 certkey
 OPINET_KEY = env("OPINET_KEY")
 
+# ---------------- 별도 기관 키 ----------------
+# 아래 세 곳은 공공데이터포털 키가 아니라 각 기관에서 직접 발급받는다.
+# 키가 없으면 해당 카드만 건너뛴다 (다른 카드는 정상 발행).
+KOBIS_KEY = env("KOBIS_KEY")        # 영화진흥위원회 kobis.or.kr
+EXIM_KEY = env("EXIM_KEY")          # 한국수출입은행 koreaexim.go.kr
+KAMIS_KEY = env("KAMIS_KEY")        # 농넷 KAMIS kamis.or.kr
+KAMIS_ID = env("KAMIS_ID")          # KAMIS 는 키와 아이디를 함께 요구한다
+
 # ---------------- 인스타그램 ----------------
 # IG_LOGIN_MODE: "instagram" (graph.instagram.com) | "facebook" (graph.facebook.com)
 IG_LOGIN_MODE = env("IG_LOGIN_MODE", "facebook").lower()
@@ -61,7 +69,7 @@ IG_GRAPH_HOST = (
 PUBLIC_BASE_URL = env("PUBLIC_BASE_URL").rstrip("/")
 
 # ---------------- 브랜딩 ----------------
-HANDLE = env("CARD_HANDLE", "@daily.data.kr")
+HANDLE = env("CARD_HANDLE", "@todays.data")
 DRY_RUN = env("DRY_RUN", "0") == "1"
 
 # ---------------- 지역 설정 ----------------
@@ -72,6 +80,13 @@ WEATHER_REGION = env("WEATHER_REGION", "서울")
 
 # 에어코리아 시도명
 AIR_SIDO = env("AIR_SIDO", "서울")
+
+# 생활기상지수 행정구역코드 (기본: 서울)
+LIFEINDEX_AREA = env("LIFEINDEX_AREA", "1100000000")
+LIFEINDEX_REGION = env("LIFEINDEX_REGION", "서울")
+
+# 청약 카드에 노출할 공급 지역 (빈 값이면 전국)
+APPLY_AREAS = [a.strip() for a in env("APPLY_AREAS", "").split(",") if a.strip()]
 
 # 실거래가 대상 시군구 (법정동코드 앞 5자리)
 REALESTATE_LAWD_CDS = [

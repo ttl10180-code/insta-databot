@@ -33,16 +33,10 @@ fi
 mkdir -p "$WORKDIR/cards"
 cp out/*.jpg "$WORKDIR/cards/"
 
-# Jekyll 처리를 끄고(언더스코어 파일 무시 방지), 간단한 인덱스를 남긴다
+# Jekyll 처리를 끄고(언더스코어 파일 무시 방지), 모바일 인덱스를 만든다.
+# 자동 게시가 막혀 있어도 이 페이지만 폰에서 열면 저장·복사로 바로 올릴 수 있다.
 touch "$WORKDIR/.nojekyll"
-{
-  echo "<!doctype html><meta charset=utf-8><title>data cards</title>"
-  echo "<h1>공공데이터 인스타 카드</h1><ul>"
-  ls -1 "$WORKDIR/cards" | sort -r | head -60 | while read -r f; do
-    echo "<li><a href=\"cards/$f\">$f</a></li>"
-  done
-  echo "</ul>"
-} > "$WORKDIR/index.html"
+python3 tools/build_index.py "$WORKDIR"
 
 cd "$WORKDIR"
 git add -A

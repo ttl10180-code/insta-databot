@@ -1,28 +1,23 @@
-{% extends "_layout.html" %}
-{% block body %}
-    <div class="hero">
-      <span class="hero__num">{{ d.gasoline }}</span><span class="hero__unit">원/L 휘발유</span>
-      <span class="hero__side">
-        <span class="badge badge--{{ d.gasoline_dir }}">{{ d.gasoline_delta }}</span>
-      </span>
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.gasoline }}</span><span class="hero__unit">원/L</span></div>
+      <span class="hero__badge hero__badge--{{ d.gasoline_dir }}">{{ d.gasoline_delta }}</span>
     </div>
-
-    <div class="grid grid--3">
-{% for f in d.fuels %}      <div class="tile">
-        <span class="tile__label">{{ f.name }}</span>
-        <span class="tile__value tile__value--sm">{{ f.price }}<span class="tile__unit">원</span></span>
-        <span class="tile__foot">{{ f.delta }}</span>
-      </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+{% for f in d.fuels %}      <div class="chip"><span class="chip__label">{{ f.name }}</span>
+        <span class="chip__value">{{ f.price }}<small>원</small></span></div>
 {% endfor %}    </div>
-
-    <div class="rank">
-{% for r in d.cheapest %}      <div class="rank__row">
-        <span class="rank__no">{{ loop.index }}</span>
-        <span class="rank__body">
-          <span class="rank__name">{{ r.name }}</span>
-          <span class="rank__meta">{{ r.addr }}</span>
+    <div class="rows">
+{% for r in d.cheapest[:2] %}      <div class="row">
+        <span class="row__no">{{ loop.index }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.name }}</span>
+          <span class="row__meta">{{ r.addr }}</span>
         </span>
-        <span class="rank__value">{{ r.price }}</span>
+        <span class="row__value">{{ r.price }}</span>
       </div>
 {% endfor %}    </div>
 {% endblock %}

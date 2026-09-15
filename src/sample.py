@@ -10,7 +10,8 @@ from contextlib import contextmanager
 from datetime import datetime
 
 from src import cards
-from src.sources import air, oil, realestate, weather
+from src.sources import (air, apply, boxoffice, exchange, lifeindex,
+                         oil, price, realestate, weather)
 
 WEATHER = {
     "date": "20260912",
@@ -72,19 +73,114 @@ OIL = {
     ],
 }
 
-DATA = {"weather": WEATHER, "air": AIR, "realestate": REALESTATE, "oil": OIL}
-MODULES = {"weather": weather, "air": air, "realestate": realestate, "oil": oil}
+
+BOXOFFICE = {
+    "kind": "daily", "target": "20260914",
+    "target_label": "9월 14일", "range_label": "9월 14일 하루",
+    "movie_count": 10, "total_man": "48.2",
+    "top": {"rank": "1", "title": "어쩌면 우리는 헤어지지 않았을지도",
+            "open": "2026-09-03", "audi": "182,417", "audi_man": "18.2",
+            "acc_man": "241.8", "move": "순위 유지", "screens": "1,204"},
+    "rows": [
+        {"rank": "1", "title": "어쩌면 우리는 헤어지지 않았을지도", "open": "2026-09-03",
+         "audi_man": "18.2", "acc_man": "241.8", "move": "순위 유지", "screens": "1,204"},
+        {"rank": "2", "title": "폭풍의 언덕", "open": "2026-09-10",
+         "audi_man": "11.7", "acc_man": "63.4", "move": "▲ 1", "screens": "982"},
+        {"rank": "3", "title": "고양이 탐정단", "open": "2026-09-12",
+         "audi_man": "7.9", "acc_man": "19.2", "move": "신규 진입", "screens": "754"},
+    ],
+}
+
+BOXOFFICE_WEEKLY = dict(BOXOFFICE, kind="weekly",
+                        target_label="9월 11일~9월 13일",
+                        range_label="9월 11일~9월 13일 주말",
+                        total_man="132.6")
+
+EXCHANGE = {
+    "date": "20260914", "date_label": "9월 14일",
+    "usd": {"unit": "USD", "name": "미국 달러", "flag": "🇺🇸", "rate": "1,398.50",
+            "diff": 4.2, "delta": "전일 대비 +4.20원", "dir": "up",
+            "ttb": "1,384.70", "tts": "1,412.30"},
+    "items": [
+        {"unit": "USD", "name": "미국 달러", "flag": "🇺🇸", "rate": "1,398.50", "delta": "전일 대비 +4.20원", "dir": "up", "ttb": "1,384.70", "tts": "1,412.30"},
+        {"unit": "JPY(100)", "name": "일본 엔 100", "flag": "🇯🇵", "rate": "942.18", "delta": "전일 대비 -1.80원", "dir": "down", "ttb": "932.9", "tts": "951.4"},
+        {"unit": "EUR", "name": "유로", "flag": "🇪🇺", "rate": "1,521.40", "delta": "전일 대비 +2.10원", "dir": "up", "ttb": "1,506.1", "tts": "1,536.7"},
+        {"unit": "CNH", "name": "중국 위안", "flag": "🇨🇳", "rate": "196.34", "delta": "전일과 동일", "dir": "flat", "ttb": "194.3", "tts": "198.3"},
+    ],
+}
+EXCHANGE["others"] = EXCHANGE["items"][1:]
+
+LIFEINDEX = {
+    "region": "서울", "date": "20260915", "date_label": "9월 15일",
+    "base_time": "06시 발표",
+    "head": {"kind": "uv", "label": "자외선", "value": "7", "text": "높음", "grade": 3,
+             "series": [{"label": "지금", "value": "7"}, {"label": "+6h", "value": "5"},
+                        {"label": "+12h", "value": "0"}, {"label": "+18h", "value": "3"},
+                        {"label": "+24h", "value": "8"}]},
+    "items": [
+        {"kind": "uv", "label": "자외선", "value": "7", "text": "높음", "grade": 3, "series": []},
+        {"kind": "senta", "label": "체감온도", "value": "28", "text": "", "grade": 2, "series": []},
+        {"kind": "air", "label": "대기정체", "value": "62", "text": "보통", "grade": 2, "series": []},
+    ],
+}
+LIFEINDEX["others"] = LIFEINDEX["items"][1:]
+
+PRICE = {
+    "date_label": "9월 15일",
+    "head": {"name": "계란", "unit": "특란 30개", "price": "7,180",
+             "delta": "전일 대비 +120원", "dir": "up", "month_pct": "+4.2%"},
+    "items": [
+        {"name": "계란", "unit": "특란 30개", "price": "7,180", "delta": "전일 대비 +120원", "dir": "up", "month_pct": "+4.2%"},
+        {"name": "배추", "unit": "1포기", "price": "4,920", "delta": "전일 대비 -310원", "dir": "down", "month_pct": "-12.5%"},
+        {"name": "삼겹살", "unit": "100g", "price": "2,640", "delta": "전일과 동일", "dir": "flat", "month_pct": "+1.1%"},
+        {"name": "대파", "unit": "1kg", "price": "3,180", "delta": "전일 대비 +90원", "dir": "up", "month_pct": "+7.8%"},
+    ],
+    "up_count": 2, "down_count": 1, "watch_count": 4,
+}
+PRICE["rest"] = PRICE["items"][1:]
+
+_APPLY_ITEMS = [
+    {"name": "힐스테이트 청계리버", "area": "서울", "addr": "서울 성동구 용답동 232-1",
+     "kind": "APT", "households": "1,020", "households_n": 1020,
+     "begin_label": "9/17", "end_label": "9/19"},
+    {"name": "e편한세상 동탄파크레이크", "area": "경기", "addr": "경기 화성시 능동 1100",
+     "kind": "APT", "households": "684", "households_n": 684,
+     "begin_label": "9/22", "end_label": "9/24"},
+    {"name": "더샵 부산에코델타", "area": "부산", "addr": "부산 강서구 명지동 3-2",
+     "kind": "APT", "households": "412", "households_n": 412,
+     "begin_label": "9/24", "end_label": "9/26"},
+]
+APPLY = {
+    "date_label": "9월 15일", "period_label": "9/15~9/29",
+    "count": 3, "total_households": "2,116", "area_count": 3,
+    "areas": ["경기", "부산", "서울"],
+    "head": _APPLY_ITEMS[0], "items": _APPLY_ITEMS, "rest": _APPLY_ITEMS[1:],
+}
+
+DATA = {
+    "weather": WEATHER, "air": AIR, "realestate": REALESTATE, "oil": OIL,
+    "boxoffice": BOXOFFICE, "boxoffice_weekly": BOXOFFICE_WEEKLY,
+    "exchange": EXCHANGE, "lifeindex": LIFEINDEX, "price": PRICE, "apply": APPLY,
+}
+MODULES = {
+    "weather": weather, "air": air, "realestate": realestate, "oil": oil,
+    "boxoffice": boxoffice, "boxoffice_weekly": boxoffice,
+    "exchange": exchange, "lifeindex": lifeindex, "price": price, "apply": apply,
+}
+# 박스오피스만 fetch 함수 이름이 다르다
+FETCH_ATTR = {"boxoffice": "fetch_daily", "boxoffice_weekly": "fetch_weekly"}
 
 
 @contextmanager
 def _patched(kind: str):
     mod = MODULES[kind]
-    original = mod.fetch
-    mod.fetch = lambda *a, **k: DATA[kind]
+    attr = FETCH_ATTR.get(kind, "fetch")
+    original = getattr(mod, attr)
+    setattr(mod, attr, lambda *a, **k: DATA[kind])
     try:
         yield
     finally:
-        mod.fetch = original
+        setattr(mod, attr, original)
 
 
 def build(kind: str, now: datetime):

@@ -1,0 +1,27 @@
+{% extends layout | default("_layout.html") %}
+{% block hero %}
+    <div class="hero__main">
+      <div class="hero__row"><span class="hero__num">{{ d.head.price }}</span><span class="hero__unit">원</span></div>
+      <span class="hero__badge hero__badge--{{ d.head.dir }}">{{ d.head.delta }}</span>
+    </div>
+{% endblock %}
+{% block body %}
+    <div class="chips">
+      <div class="chip"><span class="chip__label">오른 품목</span>
+        <span class="chip__value">{{ d.up_count }}<small>개</small></span></div>
+      <div class="chip"><span class="chip__label">내린 품목</span>
+        <span class="chip__value">{{ d.down_count }}<small>개</small></span></div>
+      <div class="chip"><span class="chip__label">조사 품목</span>
+        <span class="chip__value">{{ d.watch_count }}<small>개</small></span></div>
+    </div>
+    <div class="rows">
+{% for r in d.rest[:2] %}      <div class="row">
+        <span class="row__no">{{ loop.index }}</span>
+        <span class="row__body">
+          <span class="row__name">{{ r.name }}</span>
+          <span class="row__meta">{{ r.unit }} · {{ r.delta }}</span>
+        </span>
+        <span class="row__value">{{ r.price }}원</span>
+      </div>
+{% endfor %}    </div>
+{% endblock %}

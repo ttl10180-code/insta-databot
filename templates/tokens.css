@@ -1,7 +1,7 @@
 /* ============================================================
-   DESIGN TOKENS — 이 파일이 "항상 동일한 글씨체·위치"의 근원.
-   카드 내용이 바뀌어도 이 값들은 절대 변하지 않는다.
-   색상만 카드 종류별로 --accent 를 덮어쓴다.
+   DESIGN TOKENS
+   구조(자리·크기·굵기)는 여기서 한 번 고정되고 절대 바뀌지 않는다.
+   카드 종류가 바뀔 때 갈아끼우는 건 색 팔레트 하나뿐이다.
    ============================================================ */
 @font-face {
   font-family: 'Pretendard';
@@ -12,72 +12,118 @@
 }
 
 :root {
-  /* ---- 캔버스 (인스타 정사각 1080x1080) ---- */
   --canvas: 1080px;
-  --pad: 76px;              /* 좌우 여백 — 모든 카드 동일 */
-  --pad-top: 68px;
-  --pad-bottom: 62px;
+  --pad: 72px;
+  --pad-top: 60px;
+  --pad-bottom: 54px;
 
-  /* ---- 타입 스케일 (px 고정, 캔버스가 고정이므로 rem 불필요) ---- */
-  --fs-eyebrow: 26px;       /* 상단 카테고리 라벨 */
+  /* ---- 타입 스케일 ---- */
+  --fs-eyebrow: 27px;
   --fs-date: 26px;
-  --fs-title: 68px;         /* 메인 타이틀 */
-  --fs-subtitle: 30px;
-  --fs-hero: 128px;         /* 대표 수치 */
-  --fs-hero-unit: 40px;
-  --fs-label: 23px;         /* 항목명 */
-  --fs-value: 38px;         /* 항목값 */
-  --fs-value-sm: 31px;
-  --fs-delta: 24px;
+  --fs-title: 62px;
+  --fs-hero: 244px;      /* 대표 수치 — 카드의 주인공 */
+  --fs-hero-unit: 52px;
+  --fs-chip-label: 24px;
+  --fs-chip-value: 40px;
+  --fs-row-name: 30px;
+  --fs-row-meta: 23px;
+  --fs-row-value: 34px;
   --fs-footer: 23px;
 
-  --lh-tight: 1.12;
-  --lh-snug: 1.28;
-  --lh-normal: 1.5;
+  --lh-tight: 1.1;
+  --lh-snug: 1.3;
 
-  /* ---- 웨이트 ---- */
-  --w-regular: 400;
   --w-medium: 500;
   --w-semibold: 600;
   --w-bold: 700;
   --w-extrabold: 800;
+  --w-black: 900;
 
-  /* ---- 자간: 한글은 음수 자간이 기본 ---- */
-  --ls-tight: -0.035em;
+  --ls-tight: -0.04em;
   --ls-normal: -0.02em;
-  --ls-wide: 0.08em;
+  --ls-wide: 0.12em;
 
-  /* ---- 색상 (기본 다크) ---- */
-  --bg: #0E1420;
-  --bg-elev: #18202F;
-  --bg-elev-2: #212B3D;
-  --line: rgba(255,255,255,0.10);
-  --line-strong: rgba(255,255,255,0.18);
-  --fg: #FFFFFF;
-  --fg-muted: #9AA7BD;
-  --fg-dim: #6B7A93;
+  --r-sm: 18px;
+  --r-md: 28px;
+  --r-pill: 999px;
 
-  --accent: #4D8DFF;        /* 카드 종류별로 덮어씀 */
-  --accent-ink: #0E1420;
+  /* ---- 기본(날씨) 팔레트. 아래 theme-* 가 덮어쓴다 ---- */
+  --bg-a:      #0A2E6B;   /* 배경 그라디언트 시작 */
+  --bg-b:      #051B3F;   /* 배경 그라디언트 끝 */
+  --glow:      #3B82F6;   /* 뒤에서 퍼지는 빛 */
+  --accent:    #7DD3FC;   /* 강조 (수치·아이라인) */
+  --fg:        #FFFFFF;
+  --fg-muted:  rgba(255,255,255,.72);
+  --fg-dim:    rgba(255,255,255,.48);
+  --panel:     rgba(255,255,255,.10);
+  --panel-line:rgba(255,255,255,.16);
 
-  --up: #FF6B6B;            /* 상승(한국 관례: 빨강) */
-  --down: #4DA3FF;          /* 하락: 파랑 */
-  --flat: #9AA7BD;
+  /* 마스코트 — 카드 색을 따라간다 */
+  --odi-light: #BAE6FD;
+  --odi-dark:  #3B82F6;
+  --odi-shade: #1E3A8A;
+  --odi-rim:   #93C5FD;
+  --odi-ink:   #12275A;
+  --odi-blush: #F9A8D4;
 
-  /* ---- 등급 색 (대기질 4단계) ---- */
-  --g1: #3FC1C9;  /* 좋음 */
-  --g2: #4DA3FF;  /* 보통 */
-  --g3: #FFB454;  /* 나쁨 */
-  --g4: #FF6B6B;  /* 매우나쁨 */
-
-  /* ---- 라운드 ---- */
-  --r-sm: 14px;
-  --r-md: 22px;
-  --r-lg: 30px;
+  --up:   #FF7A7A;
+  --down: #7DD3FC;
+  --flat: rgba(255,255,255,.62);
 }
 
-/* 카드 종류별 액센트 — 구조는 그대로, 색만 교체 */
-.theme-weather   { --accent: #57C3FF; }
-.theme-air       { --accent: #5AD6A8; }
-.theme-realestate{ --accent: #FFB454; }
-.theme-oil       { --accent: #FF8A6B; }
+/* ---------- 날씨: 새벽 하늘 ---------- */
+.theme-weather {
+  --bg-a: #0B3A82; --bg-b: #06132E; --glow: #3B82F6; --accent: #8BD3FF;
+  --odi-light: #BAE6FD; --odi-dark: #3B82F6; --odi-shade: #13306E;
+  --odi-rim: #9CCEFF; --odi-ink: #0E2452; --odi-blush: #F9A8D4;
+}
+/* ---------- 대기질: 청록 ---------- */
+.theme-air {
+  --bg-a: #06544A; --bg-b: #03201E; --glow: #14B8A6; --accent: #5EEAD4;
+  --odi-light: #A7F3D0; --odi-dark: #10B981; --odi-shade: #064E3B;
+  --odi-rim: #6EE7B7; --odi-ink: #05302B; --odi-blush: #FCA5A5;
+}
+/* ---------- 실거래: 황토 ---------- */
+.theme-realestate {
+  --bg-a: #7A3E06; --bg-b: #2A1403; --glow: #F59E0B; --accent: #FDBA5C;
+  --odi-light: #FDE68A; --odi-dark: #F59E0B; --odi-shade: #7C2D12;
+  --odi-rim: #FCD34D; --odi-ink: #4A2406; --odi-blush: #FCA5A5;
+}
+/* ---------- 유가: 주황 ---------- */
+.theme-oil {
+  --bg-a: #7C2312; --bg-b: #2B0B06; --glow: #F97316; --accent: #FDA47A;
+  --odi-light: #FED7AA; --odi-dark: #F97316; --odi-shade: #7C2D12;
+  --odi-rim: #FDBA74; --odi-ink: #4A160A; --odi-blush: #FDA4AF;
+}
+
+/* ---------- 박스오피스: 바이올렛 (일별·주간 공용) ---------- */
+.theme-boxoffice {
+  --bg-a: #4C1D95; --bg-b: #160B33; --glow: #8B5CF6; --accent: #C4B5FD;
+}
+/* ---------- 환율: 딥 오션 ---------- */
+.theme-exchange {
+  --bg-a: #0B4A63; --bg-b: #02121B; --glow: #06B6D4; --accent: #67E8F9;
+}
+/* ---------- 생활기상지수: 라임 ---------- */
+.theme-lifeindex {
+  --bg-a: #3F5B06; --bg-b: #121B02; --glow: #84CC16; --accent: #BEF264;
+}
+/* ---------- 장바구니 물가: 로즈 ---------- */
+.theme-price {
+  --bg-a: #7F1D3F; --bg-b: #2A0715; --glow: #F43F5E; --accent: #FDA4AF;
+}
+/* ---------- 청약: 브론즈 (부동산과 같은 계열) ---------- */
+.theme-apply {
+  --bg-a: #5B3A12; --bg-b: #1C1105; --glow: #D97706; --accent: #FCD34D;
+}
+
+/* 등급 색 (대기질 전용) */
+.g1 { --grade: #6EE7B7; } .g2 { --grade: rgba(255,255,255,.88); }
+.g3 { --grade: #FDBA5C; } .g4 { --grade: #FF7A7A; }
+
+/* 등락 방향 색 — 환율·물가 카드에서 쓴다 */
+.hero__badge--up   { color: #FCA5A5; }
+.hero__badge--down { color: #6EE7B7; }
+.row__value.up     { color: #FCA5A5; }
+.row__value.down   { color: #6EE7B7; }
+.row__rank         { color: var(--accent); font-weight: 800; }

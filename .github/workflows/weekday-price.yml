@@ -1,9 +1,9 @@
-name: 매일 아침 · 날씨 + 대기질 + 생활지수
+name: 평일 · 장바구니 물가
 
+# KAMIS 일별 소매가는 오후에 갱신된다. 평일 17:10 KST.
 on:
   schedule:
-    # 07:30 KST (UTC+9) = 22:30 UTC 전날
-    - cron: '30 22 * * *'
+    - cron: '10 8 * * 1-5'        # 08:10 UTC = 17:10 KST, 월~금
   workflow_dispatch:
     inputs:
       dry_run:
@@ -17,7 +17,6 @@ jobs:
       contents: write
     uses: ./.github/workflows/_publish.yml
     with:
-      cards: 'weather air lifeindex'
-      carousel: true
+      cards: 'price'
       dry_run: ${{ inputs.dry_run == true }}
     secrets: inherit
