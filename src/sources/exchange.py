@@ -1,7 +1,13 @@
 """한국수출입은행 환율 → 환율 카드 데이터.
 
 koreaexim.go.kr 에서 직접 발급하는 authkey 를 쓴다 (공공데이터포털 키 아님).
-주말·공휴일에는 빈 배열이 오므로 최대 7일 전까지 거슬러 올라간다.
+
+주의할 점 두 가지:
+  1) 주말·공휴일, 그리고 영업일이어도 오전 11시 이전에는 빈 배열이 온다.
+     그래서 최대 7일 전까지 거슬러 올라가며 영업일을 찾는다.
+  2) result 코드가 성공(1) 외에 2(DATA 오류) / 3(인증 오류) / 4(일일한도 초과)
+     로 온다. 인증·한도 문제는 날짜를 바꿔도 소용없으므로 즉시 멈춘다.
+일일 호출 한도는 1000회다.
 """
 from __future__ import annotations
 
@@ -13,7 +19,8 @@ from src.common import http
 
 log = logging.getLogger(__name__)
 
-URL = "https://www.koreaexim.go.kr/site/program/financial/exchangeJSON"
+# 2025-06 도메인 변경, 2026-04-30 구 도메인(www.koreaexim.go.kr) 병행 가동 종료.
+URL = "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
 
 # 카드에 올릴 통화: (응답 cur_unit, 표시명, 이모지)
 WANTED = [
@@ -34,12 +41,24 @@ def _num(v) -> float | None:
         return None
 
 
+class ExchangeAuthError(http.PortalError):
+    """인증키 오류나 일일 한도 초과 — 날짜를 바꿔도 해결되지 않는다."""
+
+
 def _fetch_day(key: str, ymd: str) -> list[dict]:
     doc = http.get(URL, {"authkey": key, "searchdate": ymd, "data": "AP01"},
                    check_header=False)
     rows = doc if isinstance(doc, list) else http.as_list(doc)
-    # result=1 이 정상. 휴일이면 빈 배열이거나 result=2(데이터 없음)
-    return [r for r in rows if isinstance(r, dict) and str(r.get("result")) == "1"]
+    rows = [r for r in rows if isinstance(r, dict)]
+
+    codes = {str(r.get("result")) for r in rows}
+    if "3" in codes:
+        raise ExchangeAuthError("3", "EXIM_KEY 인증 오류입니다 (키가 틀렸거나 파기됨)")
+    if "4" in codes:
+        raise ExchangeAuthError("4", "수출입은행 일일 호출 한도(1000회)를 초과했습니다")
+
+    # result=1 이 정상. 휴일이거나 11시 이전이면 빈 배열이 온다.
+    return [r for r in rows if str(r.get("result")) == "1"]
 
 
 def fetch(now: datetime | None = None) -> dict:
@@ -53,6 +72,8 @@ def fetch(now: datetime | None = None) -> dict:
         log.info("수출입은행 환율 조회 %s", ymd)
         try:
             rows = _fetch_day(config.EXIM_KEY, ymd)
+        except ExchangeAuthError:
+            raise                      # 키 문제는 날짜를 바꿔도 소용없다
         except http.PortalError:
             rows = []
         if rows:
@@ -71,7 +92,7 @@ def fetch(now: datetime | None = None) -> dict:
         try:
             prows = _fetch_day(config.EXIM_KEY, ymd)
         except http.PortalError:
-            prows = []
+            prows = []                 # 비교용이라 실패해도 카드는 나간다
         if prows:
             prev = {str(r.get("cur_unit", "")).strip(): r for r in prows}
             break
