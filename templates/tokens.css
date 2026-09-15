@@ -116,6 +116,10 @@
 .theme-apply {
   --bg-a: #5B3A12; --bg-b: #1C1105; --glow: #D97706; --accent: #FCD34D;
 }
+/* ---------- 실종자 찾기: 차분한 블루 (경보색을 쓰지 않는다) ---------- */
+.theme-missing {
+  --bg-a: #1E3A6E; --bg-b: #070F22; --glow: #4A7BD9; --accent: #BFD4FF;
+}
 
 /* 등급 색 (대기질 전용) */
 .g1 { --grade: #6EE7B7; } .g2 { --grade: rgba(255,255,255,.88); }

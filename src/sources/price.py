@@ -44,21 +44,67 @@ def _num(v) -> float | None:
         return None
 
 
-def _fetch_category(ctgry: str, since: str, until: str) -> list[dict]:
-    """한 부류의 기간 내 가격 레코드를 모두 받아온다."""
-    doc = http.get(URL, {
-        "serviceKey": config.DATA_GO_KR_KEY,
-        "pageNo": 1,
-        "numOfRows": 1000,
-        "returnType": "JSON",
-        "cond[exmn_ymd::GTE]": since,
-        "cond[exmn_ymd::LTE]": until,
-        "cond[ctgry_cd::EQ]": ctgry,
-    }, check_header=False)
+def _call(params: dict) -> dict:
+    """한 번 호출하고 header/body 를 그대로 돌려준다."""
+    doc = http.get(URL, dict(params, serviceKey=config.DATA_GO_KR_KEY),
+                   check_header=False) or {}
+    if not isinstance(doc, dict):
+        return {}
+    return doc
 
-    body = (doc or {}).get("body") or {}
-    rows = http.as_list((body.get("items") or {}).get("item"))
-    # 소매가만 쓴다 (도매가는 체감 물가와 다르다)
+
+def _rows_of(doc: dict) -> list[dict]:
+    body = doc.get("body") or doc.get("response", {}).get("body") or {}
+    items = body.get("items")
+    if isinstance(items, dict):
+        items = items.get("item")
+    return [r for r in http.as_list(items) if isinstance(r, dict)]
+
+
+def _result_of(doc: dict) -> str:
+    head = doc.get("header") or doc.get("response", {}).get("header") or {}
+    code = head.get("resultCode") or head.get("result_code")
+    msg = head.get("resultMsg") or head.get("result_msg")
+    return f"{code} {msg}".strip()
+
+
+# 조사일자 표기가 20260915 인지 2026-09-15 인지 응답을 봐야 안다.
+# 첫 호출에서 먹히는 쪽을 찾아 두고 이후 부류에도 같은 표기를 쓴다.
+_DATE_FORMATS = ("%Y%m%d", "%Y-%m-%d")
+_date_fmt: str | None = None
+
+
+def _fetch_category(ctgry: str, since_dt: datetime, until_dt: datetime) -> list[dict]:
+    """한 부류의 기간 내 가격 레코드. 날짜 표기를 모르면 순서대로 시도한다."""
+    global _date_fmt
+    base = {"pageNo": 1, "numOfRows": 1000, "returnType": "JSON",
+            "cond[ctgry_cd::EQ]": ctgry}
+
+    formats = (_date_fmt,) if _date_fmt else _DATE_FORMATS
+    rows: list[dict] = []
+    for fmt in formats:
+        doc = _call(dict(base, **{
+            "cond[exmn_ymd::GTE]": since_dt.strftime(fmt),
+            "cond[exmn_ymd::LTE]": until_dt.strftime(fmt),
+        }))
+        rows = _rows_of(doc)
+        if rows:
+            _date_fmt = fmt
+            break
+        log.info("부류 %s · 날짜표기 %s → 0건 (%s)", ctgry, fmt, _result_of(doc) or "헤더 없음")
+
+    if not rows:
+        # 날짜 조건 없이 한 번만 찔러 보고, 무엇이 내려오는지 로그로 남긴다.
+        doc = _call(dict(base, numOfRows=3))
+        probe = _rows_of(doc)
+        if probe:
+            log.warning("부류 %s · 날짜조건 없이는 내려옵니다. 첫 레코드: %s",
+                        ctgry, {k: probe[0][k] for k in list(probe[0])[:12]})
+        else:
+            log.warning("부류 %s · 날짜조건 없이도 0건 (%s)",
+                        ctgry, _result_of(doc) or "헤더 없음")
+        return []
+
     retail = [r for r in rows if "소매" in str(r.get("se_nm", ""))]
     log.info("부류 %s: 전체 %d건, 소매 %d건", ctgry, len(rows), len(retail))
     return retail or rows
@@ -94,8 +140,9 @@ def fetch(now: datetime | None = None) -> dict:
         raise http.NoData("03", "DATA_GO_KR_KEY 가 없습니다")
 
     now = now or datetime.now(config.KST)
-    until = now.strftime("%Y%m%d")
-    since = (now - timedelta(days=10)).strftime("%Y%m%d")
+    # 조사일은 며칠씩 밀려 올라오므로 넉넉히 30일을 본다.
+    until_dt = now
+    since_dt = now - timedelta(days=30)
 
     cache: dict[str, list[dict]] = {}
     items, missing = [], []
@@ -104,7 +151,7 @@ def fetch(now: datetime | None = None) -> dict:
             break
         if ctgry not in cache:
             try:
-                cache[ctgry] = _fetch_category(ctgry, since, until)
+                cache[ctgry] = _fetch_category(ctgry, since_dt, until_dt)
             except http.PortalError as e:
                 log.warning("부류 %s 조회 실패: %s", ctgry, e)
                 cache[ctgry] = []
@@ -134,11 +181,13 @@ def fetch(now: datetime | None = None) -> dict:
 
     day = items[0]["day"]
     label = day
-    try:
-        d = datetime.strptime(day, "%Y%m%d")
+    for fmt in _DATE_FORMATS:
+        try:
+            d = datetime.strptime(day, fmt)
+        except ValueError:
+            continue
         label = f"{d.month}월 {d.day}일"
-    except ValueError:
-        pass
+        break
 
     head = items[0]
     return {

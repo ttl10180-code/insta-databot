@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from datetime import datetime
 
 from src import cards
-from src.sources import (air, apply, boxoffice, exchange, lifeindex,
+from src.sources import (air, apply, boxoffice, exchange, lifeindex, missing,
                          oil, price, realestate, weather)
 
 WEATHER = {
@@ -157,15 +157,34 @@ APPLY = {
     "head": _APPLY_ITEMS[0], "items": _APPLY_ITEMS, "rest": _APPLY_ITEMS[1:],
 }
 
+_MISSING_ITEMS = [
+    {"name": "홍길동", "age": "당시 7세 · 현재 21세", "sex": "남자", "target": "아동",
+     "place": "서울특별시 성북구", "day": "2012.9.16", "years": 14,
+     "feature": "120cm · 보통 · 짧은머리(생머리)"},
+    {"name": "김영희", "age": "82세", "sex": "여자", "target": "치매",
+     "place": "경기도 수원시", "day": "2026.9.2", "years": 0,
+     "feature": "155cm · 왜소 · 단발머리"},
+    {"name": "이철수", "age": "45세", "sex": "남자", "target": "지적장애",
+     "place": "부산광역시 해운대구", "day": "2026.8.11", "years": 0,
+     "feature": "172cm · 보통 · 캐주얼차림"},
+]
+MISSING = {
+    "date_label": "9월 15일",
+    "head": _MISSING_ITEMS[0], "items": _MISSING_ITEMS, "rest": _MISSING_ITEMS[1:],
+    "count": 3, "shown": 3, "long_cases": 1,
+}
+
 DATA = {
     "weather": WEATHER, "air": AIR, "realestate": REALESTATE, "oil": OIL,
     "boxoffice": BOXOFFICE, "boxoffice_weekly": BOXOFFICE_WEEKLY,
     "exchange": EXCHANGE, "lifeindex": LIFEINDEX, "price": PRICE, "apply": APPLY,
+    "missing": MISSING,
 }
 MODULES = {
     "weather": weather, "air": air, "realestate": realestate, "oil": oil,
     "boxoffice": boxoffice, "boxoffice_weekly": boxoffice,
     "exchange": exchange, "lifeindex": lifeindex, "price": price, "apply": apply,
+    "missing": missing,
 }
 # 박스오피스만 fetch 함수 이름이 다르다
 FETCH_ATTR = {"boxoffice": "fetch_daily", "boxoffice_weekly": "fetch_weekly"}

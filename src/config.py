@@ -47,6 +47,9 @@ OPINET_KEY = env("OPINET_KEY")
 # 키가 없으면 해당 카드만 건너뛴다 (다른 카드는 정상 발행).
 KOBIS_KEY = env("KOBIS_KEY")        # 영화진흥위원회 kobis.or.kr
 EXIM_KEY = env("EXIM_KEY")          # 한국수출입은행 koreaexim.go.kr
+# 안전Dream(경찰청 실종경보) — 고유아이디와 인증키 두 개가 한 쌍이다
+SAFE182_ESNTL_ID = env("SAFE182_ESNTL_ID")
+SAFE182_AUTH_KEY = env("SAFE182_AUTH_KEY")
 # 장바구니 물가는 KAMIS 별도 키 대신 공공데이터포털
 # '한국농수산식품유통공사_일별 도,소매 가격정보 조회' 를 쓴다 (DATA_GO_KR_KEY 사용)
 

@@ -61,6 +61,8 @@ jobs:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
           EXIM_KEY: ${{ secrets.EXIM_KEY }}
+          SAFE182_ESNTL_ID: ${{ secrets.SAFE182_ESNTL_ID }}
+          SAFE182_AUTH_KEY: ${{ secrets.SAFE182_AUTH_KEY }}
           CARD_HANDLE: ${{ vars.CARD_HANDLE }}
           WEATHER_NX: ${{ vars.WEATHER_NX }}
           WEATHER_NY: ${{ vars.WEATHER_NY }}
@@ -97,6 +99,8 @@ jobs:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
           EXIM_KEY: ${{ secrets.EXIM_KEY }}
+          SAFE182_ESNTL_ID: ${{ secrets.SAFE182_ESNTL_ID }}
+          SAFE182_AUTH_KEY: ${{ secrets.SAFE182_AUTH_KEY }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_LOGIN_MODE: ${{ vars.IG_LOGIN_MODE }}

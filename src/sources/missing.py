@@ -1,0 +1,154 @@
+"""경찰청 실종경보 → 실종자 찾기 카드 데이터.
+
+안전Dream(www.safe182.go.kr)에서 발령된 실종경보를 받아온다.
+공공데이터포털 키가 아니라 안전Dream에서 직접 발급하는
+고유아이디(esntlId) + 인증키(authKey) 두 개가 필요하다.
+
+주의:
+  * 요청은 POST 다 (GET 이면 응답이 비어 온다).
+  * result 코드 00 정상 / 80 일일 1000건 초과 / 99 필수항목 누락.
+  * 이용약관상 '[자료 출처: 경찰청]' 표기가 의무다. 카드와 캡션에 넣는다.
+  * 사진은 내려받지 않는다. 카드에는 이름·나이·성별·실종일·장소만 싣고,
+    제보는 국번없이 182 와 안전Dream 으로 안내한다.
+"""
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timedelta
+
+import requests
+
+from src import config
+from src.common import http
+
+log = logging.getLogger(__name__)
+
+URL = "https://www.safe182.go.kr/api/lcm/amberList.do"
+
+# 대상 구분 코드 → 카드에 쓸 짧은 말
+TARGET_LABEL = {
+    "010": "아동", "020": "가출인", "040": "무연고자",
+    "060": "지적장애", "061": "지적장애", "062": "지적장애",
+    "070": "치매", "080": "기타",
+}
+
+MAX_ITEMS = 6
+LOOKBACK_DAYS = 365          # 실종경보는 오래 열려 있는 건이 많다
+ROW_SIZE = 100
+
+
+def _post(params: dict) -> dict:
+    body = dict(params,
+                esntlId=config.SAFE182_ESNTL_ID,
+                authKey=config.SAFE182_AUTH_KEY)
+    r = requests.post(URL, data=body, timeout=http.DEFAULT_TIMEOUT,
+                      headers={"User-Agent": "insta-databot/1.0"})
+    r.raise_for_status()
+    doc = http._parse(r.text)
+    return doc if isinstance(doc, dict) else {}
+
+
+def _check(doc: dict) -> None:
+    code = str(doc.get("result") or "")
+    msg = str(doc.get("msg") or "")
+    if code == "80":
+        raise http.NoData("80", "안전Dream 일일 조회 한도(1000건)를 넘었습니다")
+    if code == "99":
+        raise http.PortalError("99", f"필수항목 누락: {msg}")
+    if code and code != "00":
+        raise http.PortalError(code, msg or "안전Dream 응답 오류")
+
+
+def _ymd(d: datetime) -> str:
+    return d.strftime("%Y-%m-%d")
+
+
+def _fetch_rows(now: datetime) -> list[dict]:
+    """발생일 범위로 먼저 시도하고, 안 되면 조건 없이 최신 목록을 받는다."""
+    since, until = now - timedelta(days=LOOKBACK_DAYS), now
+    attempts = [
+        {"rowSize": ROW_SIZE, "page": 1,
+         "detailDate1": _ymd(since), "detailDate2": _ymd(until)},
+        {"rowSize": ROW_SIZE, "page": 1},
+    ]
+    for params in attempts:
+        doc = _post(params)
+        _check(doc)
+        rows = [r for r in http.as_list(doc.get("list")) if isinstance(r, dict)]
+        if rows:
+            log.info("실종경보 %d건 (전체 %s건)", len(rows), doc.get("totalCount"))
+            return rows
+        log.info("실종경보 조회 0건 · params=%s", sorted(params))
+    return []
+
+
+def _age(row: dict) -> str:
+    now_age = str(row.get("ageNow") or "").strip()
+    then_age = str(row.get("age") or "").strip()
+    if now_age and then_age and now_age != then_age:
+        return f"당시 {then_age}세 · 현재 {now_age}세"
+    return f"{now_age or then_age}세" if (now_age or then_age) else "나이 미상"
+
+
+def _date_label(raw: str) -> str:
+    raw = str(raw or "").replace("-", "").strip()
+    for fmt in ("%Y%m%d", "%Y%m%d%H%M%S"):
+        try:
+            d = datetime.strptime(raw[:len(datetime.now().strftime(fmt))], fmt)
+        except ValueError:
+            continue
+        return f"{d.year}.{d.month}.{d.day}"
+    return "-"
+
+
+def _years_since(raw: str, now: datetime) -> int | None:
+    raw = str(raw or "").replace("-", "").strip()[:8]
+    try:
+        d = datetime.strptime(raw, "%Y%m%d")
+    except ValueError:
+        return None
+    return max(0, (now.replace(tzinfo=None) - d).days // 365)
+
+
+def fetch(now: datetime | None = None) -> dict:
+    if not (config.SAFE182_ESNTL_ID and config.SAFE182_AUTH_KEY):
+        raise http.NoData("03", "SAFE182_ESNTL_ID / SAFE182_AUTH_KEY 가 없습니다")
+
+    now = now or datetime.now(config.KST)
+    rows = _fetch_rows(now)
+    if not rows:
+        raise http.NoData("03", "현재 발령된 실종경보가 없습니다")
+
+    # 최근 실종부터
+    rows.sort(key=lambda r: str(r.get("occrde") or ""), reverse=True)
+
+    items = []
+    for r in rows[:MAX_ITEMS]:
+        occ = str(r.get("occrde") or "")
+        items.append({
+            "name": str(r.get("nm") or "이름 비공개").strip(),
+            "age": _age(r),
+            "sex": str(r.get("sexdstnDscd") or "").strip() or "-",
+            "target": TARGET_LABEL.get(str(r.get("writngTrgetDscd") or "").strip(), "실종자"),
+            "place": str(r.get("occrAdres") or "장소 미상").strip(),
+            "day": _date_label(occ),
+            "years": _years_since(occ, now),
+            "feature": " · ".join(x for x in [
+                str(r.get("height") or "").strip() and f"{r.get('height')}cm",
+                str(r.get("frmDscd") or "").strip(),
+                str(r.get("hairshpeDscd") or "").strip(),
+                str(r.get("alldressingDscd") or "").strip(),
+            ] if x and x != "불상") or "특징 정보 없음",
+        })
+
+    head = items[0]
+    long_cases = sum(1 for i in items if (i["years"] or 0) >= 5)
+    return {
+        "date_label": f"{now.month}월 {now.day}일",
+        "head": head,
+        "items": items,
+        "rest": items[1:],
+        "count": len(rows),
+        "shown": len(items),
+        "long_cases": long_cases,
+    }

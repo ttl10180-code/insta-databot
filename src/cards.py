@@ -9,7 +9,7 @@ from datetime import datetime
 
 from src import config
 from src.sources import (air, apply, boxoffice, exchange, lifeindex,
-                         oil, price, realestate, weather)
+                         missing, oil, price, realestate, weather)
 
 WEEKDAYS = ["월", "화", "수", "목", "금", "토", "일"]
 
@@ -376,6 +376,46 @@ def build_apply(now: datetime) -> tuple[str, dict, str]:
     return "apply.html", ctx, caption
 
 
+# --------------------------------------------------------------------------
+def build_missing(now: datetime) -> tuple[str, dict, str]:
+    """실종경보 카드.
+
+    사진은 싣지 않는다. 경찰이 공개한 범위(이름·나이·성별·실종일·장소)만
+    그대로 옮기고, 판단이나 추측은 한 줄도 덧붙이지 않는다.
+    """
+    d = missing.fetch(now=now)
+    head = d["head"]
+    ctx = _base(
+        now,
+        eyebrow="실종자 찾기",
+        title=f"{head['name']} 님을 찾습니다",
+        subtitle=f"{head['age']} · {head['place']} · {head['day']} 실종",
+        theme="theme-missing",
+        source="경찰청 안전Dream 실종경보",
+    )
+    ctx["d"] = d
+    ctx["bg"] = _bg("missing", "base")
+
+    lines = "\n".join(
+        f"· {r['name']} ({r['age']}, {r['sex']}) — {r['day']} {r['place']}"
+        for r in d["items"]
+    )
+    caption = f"""🔎 실종경보가 발령된 {d['count']}명을 찾고 있습니다
+
+{lines}
+
+혹시 보신 적 있으신가요? 확실하지 않아도 괜찮습니다.
+· 제보 전화 : 국번없이 182 (24시간)
+· 안전Dream : www.safe182.go.kr
+
+한 번의 공유가 가족에게 돌아가는 길이 됩니다.
+
+📊 자료 출처: 경찰청
+
+#실종자찾기 #실종경보 #182 #안전드림 #함께찾아요 #공유부탁드립니다 #실종아동 #치매어르신 #공공데이터 #오늘의데이터"""
+    return "missing.html", ctx, caption
+
+
 CARDS = {
     "weather": build_weather,
     "air": build_air,
@@ -387,4 +427,5 @@ CARDS = {
     "lifeindex": build_lifeindex,
     "price": build_price,
     "apply": build_apply,
+    "missing": build_missing,
 }
