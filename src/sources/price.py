@@ -54,7 +54,13 @@ def _call(params: dict) -> dict:
 
 
 def _rows_of(doc: dict) -> list[dict]:
+    """응답 모양이 두 가지다.
+    표준 포털형: body.items.item[] / odcloud형: 최상위 data[]"""
+    if isinstance(doc.get("data"), list):
+        return [r for r in doc["data"] if isinstance(r, dict)]
     body = doc.get("body") or doc.get("response", {}).get("body") or {}
+    if not isinstance(body, dict):
+        return []
     items = body.get("items")
     if isinstance(items, dict):
         items = items.get("item")
@@ -94,15 +100,20 @@ def _fetch_category(ctgry: str, since_dt: datetime, until_dt: datetime) -> list[
         log.info("부류 %s · 날짜표기 %s → 0건 (%s)", ctgry, fmt, _result_of(doc) or "헤더 없음")
 
     if not rows:
-        # 날짜 조건 없이 한 번만 찔러 보고, 무엇이 내려오는지 로그로 남긴다.
-        doc = _call(dict(base, numOfRows=3))
-        probe = _rows_of(doc)
+        # 조건을 전부 떼고 맨몸으로 한 번 찔러, 응답이 어떻게 생겼는지 남긴다.
+        # (부류 필터까지 떼야 한다 — 코드값이 틀렸을 가능성도 있다)
+        doc = _call({"pageNo": 1, "numOfRows": 3, "returnType": "JSON"})
+        log.warning("부류 %s · 조건 없는 맨몸 호출 → 최상위 키 %s",
+                    ctgry, sorted(doc.keys()) if isinstance(doc, dict) else type(doc).__name__)
+        body = doc.get("body") or {}
+        if isinstance(body, dict):
+            log.warning("  body 키 %s · totalCount=%s",
+                        sorted(body.keys()), body.get("totalCount"))
+        probe = _rows_of(doc) or [r for r in http.as_list(doc.get("data")) if isinstance(r, dict)]
         if probe:
-            log.warning("부류 %s · 날짜조건 없이는 내려옵니다. 첫 레코드: %s",
-                        ctgry, {k: probe[0][k] for k in list(probe[0])[:12]})
+            log.warning("  첫 레코드: %s", {k: probe[0][k] for k in list(probe[0])[:16]})
         else:
-            log.warning("부류 %s · 날짜조건 없이도 0건 (%s)",
-                        ctgry, _result_of(doc) or "헤더 없음")
+            log.warning("  레코드도 0건 (%s)", _result_of(doc) or "헤더 없음")
         return []
 
     retail = [r for r in rows if "소매" in str(r.get("se_nm", ""))]
