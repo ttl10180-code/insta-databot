@@ -23,7 +23,7 @@ NOW = datetime(2026, 9, 15, 9, 0)
     (lambda: boxoffice.fetch_daily(now=NOW), ["KOBIS_KEY"]),
     (lambda: boxoffice.fetch_weekly(now=NOW), ["KOBIS_KEY"]),
     (lambda: exchange.fetch(now=NOW), ["EXIM_KEY"]),
-    (lambda: price.fetch(now=NOW), ["KAMIS_KEY", "KAMIS_ID"]),
+    (lambda: price.fetch(now=NOW), ["DATA_GO_KR_KEY"]),
     (lambda: apply.fetch(now=NOW), ["DATA_GO_KR_KEY"]),
 ])
 def test_missing_key_skips_quietly(monkeypatch, call, attrs):

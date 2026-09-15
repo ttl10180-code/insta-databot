@@ -61,8 +61,6 @@ jobs:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
           EXIM_KEY: ${{ secrets.EXIM_KEY }}
-          KAMIS_KEY: ${{ secrets.KAMIS_KEY }}
-          KAMIS_ID: ${{ secrets.KAMIS_ID }}
           CARD_HANDLE: ${{ vars.CARD_HANDLE }}
           WEATHER_NX: ${{ vars.WEATHER_NX }}
           WEATHER_NY: ${{ vars.WEATHER_NY }}
@@ -99,8 +97,6 @@ jobs:
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
           EXIM_KEY: ${{ secrets.EXIM_KEY }}
-          KAMIS_KEY: ${{ secrets.KAMIS_KEY }}
-          KAMIS_ID: ${{ secrets.KAMIS_ID }}
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           IG_LOGIN_MODE: ${{ vars.IG_LOGIN_MODE }}

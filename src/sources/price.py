@@ -1,103 +1,84 @@
-"""KAMIS 농수산물 소매가격 → 장바구니 물가 카드 데이터.
+"""농수산물 일별 소매가 → 장바구니 물가 카드 데이터.
 
-kamis.or.kr 에서 발급하는 인증키 + 아이디를 함께 요구한다.
-dailySalesList 는 주요 품목의 당일 소매가와 등락을 한 번에 준다.
+KAMIS 사이트의 별도 키 대신 공공데이터포털의
+'한국농수산식품유통공사_일별 도,소매 가격정보 조회' 를 쓴다.
+같은 데이터인데 DATA_GO_KR_KEY 하나로 되고 심의도 자동승인이다.
+
+품목코드를 하나하나 맞춰 넣는 대신, 부류(채소·축산 등) 단위로 받아 와서
+품목명으로 고른다. 코드표가 바뀌어도 잘 깨지지 않고, 어떤 품목이 실제로
+내려오는지 로그로 남아 다음에 조정하기도 쉽다.
 """
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from src import config
 from src.common import http
 
 log = logging.getLogger(__name__)
 
-URL = "https://www.kamis.or.kr/service/price/xml.do"
+URL = "https://apis.data.go.kr/B552845/perDay/price"
 
-# 카드에 올릴 품목 우선순위. 응답의 item_name 과 부분일치로 고른다.
-PICKS = ["계란", "배추", "무", "쌀", "삼겹살", "돼지고기", "양파", "대파", "감자", "사과"]
-UNIT_FIX = {"1": "", "개": "개"}
+# 카드에 올릴 품목: (부류코드, 품목명 조각). 위에서부터 우선순위.
+# 품목명은 부분일치로 찾으므로 응답의 정확한 표기를 몰라도 걸린다.
+WANTED = [
+    ("500", "계란"),
+    ("200", "배추"),
+    ("500", "삼겹살"),
+    ("200", "대파"),
+    ("100", "쌀"),
+    ("200", "양파"),
+    ("400", "사과"),
+]
+# 부류코드: 100 식량작물 / 200 채소류 / 300 특용작물 / 400 과일류 / 500 축산물 / 600 수산물
+MAX_ITEMS = 6
 
 
 def _num(v) -> float | None:
     if v is None:
         return None
     try:
-        return float(str(v).replace(",", "").replace("원", "").strip())
+        return float(str(v).replace(",", "").strip())
     except ValueError:
         return None
 
 
-def _pick_name(row: dict) -> str:
-    return (row.get("item_name") or row.get("productName") or "").strip()
-
-
-def fetch(now: datetime | None = None) -> dict:
-    if not (config.KAMIS_KEY and config.KAMIS_ID):
-        raise http.NoData("03", "KAMIS_KEY / KAMIS_ID 가 없어 물가 카드를 건너뜁니다")
-
-    log.info("KAMIS 주요 품목 소매가 조회")
+def _fetch_category(ctgry: str, since: str, until: str) -> list[dict]:
+    """한 부류의 기간 내 가격 레코드를 모두 받아온다."""
     doc = http.get(URL, {
-        "action": "dailySalesList",
-        "p_cert_key": config.KAMIS_KEY,
-        "p_cert_id": config.KAMIS_ID,
-        "p_returntype": "json",
+        "serviceKey": config.DATA_GO_KR_KEY,
+        "pageNo": 1,
+        "numOfRows": 1000,
+        "returnType": "JSON",
+        "cond[exmn_ymd::GTE]": since,
+        "cond[exmn_ymd::LTE]": until,
+        "cond[ctgry_cd::EQ]": ctgry,
     }, check_header=False)
 
-    rows = http.as_list(doc.get("price") if isinstance(doc, dict) else doc)
-    rows = [r for r in rows if isinstance(r, dict) and _num(r.get("dpr1")) is not None]
-    if not rows:
-        raise http.NoData("03", "KAMIS 응답에 가격 데이터가 없습니다")
+    body = (doc or {}).get("body") or {}
+    rows = http.as_list((body.get("items") or {}).get("item"))
+    # 소매가만 쓴다 (도매가는 체감 물가와 다르다)
+    retail = [r for r in rows if "소매" in str(r.get("se_nm", ""))]
+    log.info("부류 %s: 전체 %d건, 소매 %d건", ctgry, len(rows), len(retail))
+    return retail or rows
 
-    # 관심 품목을 우선순위대로, 없으면 응답 순서대로 채운다
-    chosen, seen = [], set()
-    for want in PICKS:
-        for r in rows:
-            name = _pick_name(r)
-            if want in name and name not in seen:
-                chosen.append(r)
-                seen.add(name)
-                break
-    for r in rows:
-        if len(chosen) >= 6:
-            break
-        name = _pick_name(r)
-        if name not in seen:
-            chosen.append(r)
-            seen.add(name)
 
-    items = []
-    for r in chosen[:6]:
-        today = _num(r.get("dpr1"))
-        yday = _num(r.get("dpr2"))
-        month = _num(r.get("dpr3"))
-        diff = None if (today is None or yday is None) else today - yday
-        pct = None
-        if today is not None and month:
-            pct = (today - month) / month * 100
-        items.append({
-            "name": _pick_name(r),
-            "unit": (r.get("unit") or "").strip(),
-            "price": f"{today:,.0f}" if today is not None else "-",
-            "delta": _delta_text(diff),
-            "dir": "flat" if diff is None or abs(diff) < 1 else ("up" if diff > 0 else "down"),
-            "month_pct": f"{pct:+.1f}%" if pct is not None else "-",
-        })
-
-    head = items[0]
-    up = sum(1 for i in items if i["dir"] == "up")
-    down = sum(1 for i in items if i["dir"] == "down")
-    day = str(rows[0].get("lastest_day") or "").strip()
-    return {
-        "date_label": day or (now or datetime.now(config.KST)).strftime("%m월 %d일"),
-        "head": head,
-        "items": items,
-        "rest": items[1:],
-        "up_count": up,
-        "down_count": down,
-        "watch_count": len(items),
-    }
+def _pick(rows: list[dict], name_part: str) -> tuple[dict, dict | None] | None:
+    """품목명이 걸리는 레코드 중 최신 조사일과 그 직전 조사일을 짝지어 준다."""
+    hit = [r for r in rows
+           if name_part in str(r.get("item_nm", ""))
+           and _num(r.get("exmn_dd_prc")) is not None]
+    if not hit:
+        return None
+    hit.sort(key=lambda r: str(r.get("exmn_ymd", "")), reverse=True)
+    latest = hit[0]
+    day = str(latest.get("exmn_ymd"))
+    # 같은 품목·같은 등급의 이전 조사일을 찾는다
+    prev = next((r for r in hit
+                 if str(r.get("exmn_ymd")) < day
+                 and r.get("grd_cd") == latest.get("grd_cd")), None)
+    return latest, prev
 
 
 def _delta_text(diff: float | None) -> str:
@@ -106,3 +87,66 @@ def _delta_text(diff: float | None) -> str:
     if abs(diff) < 1:
         return "전일과 동일"
     return f"전일 대비 {diff:+,.0f}원"
+
+
+def fetch(now: datetime | None = None) -> dict:
+    if not config.DATA_GO_KR_KEY:
+        raise http.NoData("03", "DATA_GO_KR_KEY 가 없습니다")
+
+    now = now or datetime.now(config.KST)
+    until = now.strftime("%Y%m%d")
+    since = (now - timedelta(days=10)).strftime("%Y%m%d")
+
+    cache: dict[str, list[dict]] = {}
+    items, missing = [], []
+    for ctgry, name_part in WANTED:
+        if len(items) >= MAX_ITEMS:
+            break
+        if ctgry not in cache:
+            try:
+                cache[ctgry] = _fetch_category(ctgry, since, until)
+            except http.PortalError as e:
+                log.warning("부류 %s 조회 실패: %s", ctgry, e)
+                cache[ctgry] = []
+        found = _pick(cache[ctgry], name_part)
+        if not found:
+            missing.append(name_part)
+            continue
+        latest, prev = found
+        today = _num(latest.get("exmn_dd_prc"))
+        before = _num((prev or {}).get("exmn_dd_prc"))
+        diff = None if (today is None or before is None) else today - before
+        unit = f"{latest.get('unit_sz') or ''}{latest.get('unit') or ''}".strip()
+        items.append({
+            "name": str(latest.get("item_nm") or name_part).strip(),
+            "unit": unit or "-",
+            "price": f"{today:,.0f}",
+            "delta": _delta_text(diff),
+            "dir": "flat" if diff is None or abs(diff) < 1 else ("up" if diff > 0 else "down"),
+            "day": str(latest.get("exmn_ymd") or ""),
+            "grade": str(latest.get("grd_nm") or "").strip(),
+        })
+
+    if missing:
+        log.info("응답에 없어 건너뛴 품목: %s", ", ".join(missing))
+    if not items:
+        raise http.NoData("03", "가격 데이터를 한 건도 찾지 못했습니다 (활용신청 승인 여부 확인)")
+
+    day = items[0]["day"]
+    label = day
+    try:
+        d = datetime.strptime(day, "%Y%m%d")
+        label = f"{d.month}월 {d.day}일"
+    except ValueError:
+        pass
+
+    head = items[0]
+    return {
+        "date_label": label,
+        "head": head,
+        "items": items,
+        "rest": items[1:],
+        "up_count": sum(1 for i in items if i["dir"] == "up"),
+        "down_count": sum(1 for i in items if i["dir"] == "down"),
+        "watch_count": len(items),
+    }
