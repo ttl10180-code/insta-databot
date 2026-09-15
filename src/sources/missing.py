@@ -8,11 +8,14 @@
   * 요청은 POST 다 (GET 이면 응답이 비어 온다).
   * result 코드 00 정상 / 80 일일 1000건 초과 / 99 필수항목 누락.
   * 이용약관상 '[자료 출처: 경찰청]' 표기가 의무다. 카드와 캡션에 넣는다.
-  * 사진은 내려받지 않는다. 카드에는 이름·나이·성별·실종일·장소만 싣고,
-    제보는 국번없이 182 와 안전Dream 으로 안내한다.
+  * 사진이 실종경보의 핵심이다. 응답에 base64 가 실려 오면 그대로 쓰고,
+    없으면 안전Dream 이 공개한 이미지 주소(blobImgView.do)에서 받아
+    data URI 로 박아 넣는다. 카드 렌더는 네트워크 없이 끝나야 하기 때문이다.
+  * 제보는 국번없이 182 와 안전Dream 으로 안내한다.
 """
 from __future__ import annotations
 
+import base64
 import logging
 from datetime import datetime, timedelta
 
@@ -24,6 +27,7 @@ from src.common import http
 log = logging.getLogger(__name__)
 
 URL = "https://www.safe182.go.kr/api/lcm/amberList.do"
+PHOTO_URL = "https://www.safe182.go.kr/blobImgView.do"
 
 # 대상 구분 코드 → 카드에 쓸 짧은 말
 TARGET_LABEL = {
@@ -32,7 +36,7 @@ TARGET_LABEL = {
     "070": "치매", "080": "기타",
 }
 
-MAX_ITEMS = 6
+MAX_ITEMS = 3          # 얼굴이 커야 알아본다. 한 장에 3명까지만.
 LOOKBACK_DAYS = 365          # 실종경보는 오래 열려 있는 건이 많다
 ROW_SIZE = 100
 
@@ -77,9 +81,47 @@ def _fetch_rows(now: datetime) -> list[dict]:
         rows = [r for r in http.as_list(doc.get("list")) if isinstance(r, dict)]
         if rows:
             log.info("실종경보 %d건 (전체 %s건)", len(rows), doc.get("totalCount"))
+            # 응답 필드명은 문서에 다 나와 있지 않다. 한 번은 찍어 둔다.
+            log.info("응답 필드: %s", sorted(rows[0].keys()))
             return rows
         log.info("실종경보 조회 0건 · params=%s", sorted(params))
     return []
+
+
+def _b64_photo(row: dict) -> str | None:
+    """응답에 사진이 base64 로 실려 오는 경우."""
+    for key in ("tknphotoFile", "tknphoto", "photo", "file2", "photoFile"):
+        raw = row.get(key)
+        if isinstance(raw, str) and len(raw) > 512:
+            if raw.startswith("data:"):
+                return raw
+            return "data:image/jpeg;base64," + raw.strip()
+    return None
+
+
+def _fetch_photo(row: dict) -> str | None:
+    """안전Dream 공개 이미지 주소에서 받아 data URI 로 만든다."""
+    idn = str(row.get("msspsnIdntfccd") or "").strip()
+    rpt = str(row.get("rptDscd") or "").strip()
+    if not idn:
+        return None
+    try:
+        r = requests.get(PHOTO_URL, params={"msspsnIdntfccd": idn, "rptDscd": rpt},
+                         timeout=http.DEFAULT_TIMEOUT,
+                         headers={"User-Agent": "insta-databot/1.0",
+                                  "Referer": "https://www.safe182.go.kr/"})
+        r.raise_for_status()
+    except requests.RequestException as e:
+        log.info("사진을 받지 못했습니다 (%s): %s", idn, e)
+        return None
+    if not r.content or not r.headers.get("Content-Type", "").startswith("image"):
+        return None
+    mime = r.headers["Content-Type"].split(";")[0]
+    return f"data:{mime};base64," + base64.b64encode(r.content).decode()
+
+
+def _photo(row: dict) -> str | None:
+    return _b64_photo(row) or _fetch_photo(row)
 
 
 def _age(row: dict) -> str:
@@ -122,10 +164,16 @@ def fetch(now: datetime | None = None) -> dict:
     # 최근 실종부터
     rows.sort(key=lambda r: str(r.get("occrde") or ""), reverse=True)
 
-    items = []
-    for r in rows[:MAX_ITEMS]:
+    items, with_photo = [], 0
+    for r in rows:
+        if len(items) >= MAX_ITEMS:
+            break
+        photo = _photo(r)
+        if photo:
+            with_photo += 1
         occ = str(r.get("occrde") or "")
         items.append({
+            "photo": photo,
             "name": str(r.get("nm") or "이름 비공개").strip(),
             "age": _age(r),
             "sex": str(r.get("sexdstnDscd") or "").strip() or "-",
@@ -141,6 +189,8 @@ def fetch(now: datetime | None = None) -> dict:
             ] if x and x != "불상") or "특징 정보 없음",
         })
 
+    # 사진 있는 사람을 앞으로 (얼굴이 먼저 보여야 한다)
+    items.sort(key=lambda i: 0 if i["photo"] else 1)
     head = items[0]
     long_cases = sum(1 for i in items if (i["years"] or 0) >= 5)
     return {
@@ -150,5 +200,6 @@ def fetch(now: datetime | None = None) -> dict:
         "rest": items[1:],
         "count": len(rows),
         "shown": len(items),
+        "with_photo": with_photo,
         "long_cases": long_cases,
     }

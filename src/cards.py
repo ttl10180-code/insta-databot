@@ -388,8 +388,8 @@ def build_missing(now: datetime) -> tuple[str, dict, str]:
     ctx = _base(
         now,
         eyebrow="실종자 찾기",
-        title=f"{head['name']} 님을 찾습니다",
-        subtitle=f"{head['age']} · {head['place']} · {head['day']} 실종",
+        title="이 얼굴을 기억해 주세요",
+        subtitle=f"실종경보 {d['count']}명 · 제보는 국번없이 182",
         theme="theme-missing",
         source="경찰청 안전Dream 실종경보",
     )

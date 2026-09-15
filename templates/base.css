@@ -201,3 +201,39 @@ h1, h2, p, span, div { word-break: keep-all; overflow-wrap: anywhere; }
 }
 .ft b { color: var(--fg-muted); font-weight: var(--w-semibold); }
 .ft__handle { font-weight: var(--w-bold); color: var(--accent); letter-spacing: var(--ls-normal); }
+
+
+/* ---------- 실종경보: 얼굴 그리드 ----------
+   얼굴이 주인공이라 이 카드만 히어로를 넓게 쓰고 마스코트를 뺀다.
+   실제 사람의 얼굴 옆에 캐릭터를 세우지 않는다. */
+.theme-missing .odi { display: none; }
+/* 마스코트를 뺀 만큼 얼굴을 키운다 */
+.theme-missing .hero { height: 508px; flex: 0 0 508px; }
+.story.theme-missing .hero { height: 760px; flex: 0 0 760px; }
+.theme-missing .ttl h1 { max-width: 22ch; }
+.hero__main--wide { width: 100%; height: 100%; justify-content: center; gap: 0; }
+.faces { display: flex; gap: 24px; align-items: flex-start; width: 100%; }
+.face { margin: 0; flex: 1 1 0; min-width: 0; text-align: center; }
+.face__img {
+  display: block; width: 100%; height: 368px; object-fit: cover;
+  border-radius: 22px; background: rgba(255,255,255,.10);
+  box-shadow: 0 16px 38px rgba(0,0,0,.42);
+}
+.face__img--none {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px; color: rgba(255,255,255,.52);
+}
+.face__cap { margin-top: 14px; display: grid; gap: 3px; line-height: 1.25; }
+.face__cap b { font-size: 33px; font-weight: 800; letter-spacing: -.01em; }
+.face__cap span {
+  font-size: 22px; color: rgba(255,255,255,.72);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.note {
+  margin: 20px 0 0; font-size: 26px; line-height: 1.4;
+  color: rgba(255,255,255,.74);
+}
+.story .faces { gap: 30px; }
+.story .face__img { height: 560px; }
+.story .face__cap b { font-size: 40px; }
+.story .face__cap span { font-size: 27px; }

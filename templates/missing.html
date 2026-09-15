@@ -1,27 +1,27 @@
 {% extends layout | default("_layout.html") %}
 {% block hero %}
-    <div class="hero__main">
-      <div class="hero__row"><span class="hero__num">{{ d.count }}</span><span class="hero__unit">명</span></div>
-      <span class="hero__badge">실종경보 발령 중</span>
+    <div class="hero__main hero__main--wide">
+      <div class="faces">
+{% for r in d['items'] %}        <figure class="face">
+          {% if r.photo %}<img class="face__img" src="{{ r.photo }}" alt="">
+          {% else %}<span class="face__img face__img--none">사진 없음</span>{% endif %}
+          <figcaption class="face__cap">
+            <b>{{ r.name }}</b>
+            <span>{{ r.age }} · {{ r.sex }}</span>
+            <span>{{ r.day }} · {{ r.place }}</span>
+          </figcaption>
+        </figure>
+{% endfor %}      </div>
     </div>
 {% endblock %}
 {% block body %}
     <div class="chips">
       <div class="chip"><span class="chip__label">제보 전화</span>
-        <span class="chip__value">182<small>국번없이</small></span></div>
+        <span class="chip__value">182<small>국번없이 · 24시간</small></span></div>
+      <div class="chip"><span class="chip__label">경보 발령</span>
+        <span class="chip__value">{{ d.count }}<small>명</small></span></div>
       <div class="chip"><span class="chip__label">5년 이상</span>
         <span class="chip__value">{{ d.long_cases }}<small>명</small></span></div>
-      <div class="chip"><span class="chip__label">가장 최근</span>
-        <span class="chip__value">{{ d.head.day }}</span></div>
     </div>
-    <div class="rows">
-{% for r in d['items'][:2] %}      <div class="row">
-        <span class="row__no">{{ loop.index }}</span>
-        <span class="row__body">
-          <span class="row__name">{{ r.name }} · {{ r.age }}</span>
-          <span class="row__meta">{{ r.sex }} · {{ r.target }} · {{ r.place }}</span>
-        </span>
-        <span class="row__value">{{ r.day }}</span>
-      </div>
-{% endfor %}    </div>
+    <p class="note">확실하지 않아도 괜찮습니다. 비슷한 분을 보셨다면 182로 알려주세요.</p>
 {% endblock %}
