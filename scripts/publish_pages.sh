@@ -6,9 +6,10 @@ set -euo pipefail
 BRANCH="${PAGES_BRANCH:-gh-pages}"
 WORKDIR="$(mktemp -d)"
 
+# 카드가 하나도 안 만들어졌을 수 있다 (키 없음 등). 그건 오류가 아니라 '오늘은 없음'이다.
 if ! ls out/*.jpg >/dev/null 2>&1; then
-  echo "::error::out/ 에 업로드할 .jpg 가 없습니다."
-  exit 1
+  echo "::notice::out/ 에 업로드할 .jpg 가 없어 배포를 건너뜁니다."
+  exit 0
 fi
 
 git config --global user.name  "github-actions[bot]"

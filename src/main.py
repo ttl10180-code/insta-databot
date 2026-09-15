@@ -16,7 +16,7 @@ from datetime import datetime
 from pathlib import Path
 
 from src import cards, config, sample
-from src.common import instagram, render
+from src.common import http, instagram, render
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,18 +52,44 @@ def public_url(path) -> str:
 
 
 def cmd_render(args) -> int:
+    """카드를 만든다. 한 카드가 실패해도 나머지는 계속 만든다.
+
+    키가 없거나(NoData) 그날 데이터가 없는 카드 하나 때문에 워크플로 전체가
+    죽으면, 정상인 다른 카드까지 발행이 멈춘다. 그래서 카드 단위로 격리하고
+    한 장이라도 만들어졌으면 성공으로 끝낸다.
+    """
     now = datetime.now(config.KST)
-    results = []
+    config.OUT_DIR.mkdir(parents=True, exist_ok=True)
+    results, skipped, broken = [], [], []
     for kind in args.kinds:
-        path, caption, story_path = make_card(kind, now, args.sample,
-                                              story=getattr(args, "story", False))
+        try:
+            path, caption, story_path = make_card(kind, now, args.sample,
+                                                  story=getattr(args, "story", False))
+        except http.NoData as e:
+            # 키가 없거나 그날 데이터가 없는 경우. 오류가 아니라 '오늘은 없음'이다.
+            log.warning("⏭️  %s 건너뜁니다: %s", kind, e)
+            skipped.append(kind)
+            continue
+        except Exception as e:                # noqa: BLE001
+            log.error("❌ %s 카드 생성 실패: %s", kind, e)
+            broken.append(kind)
+            continue
         row = {"kind": kind, "file": str(path), "caption": caption}
         if story_path:
             row["story"] = str(story_path)
         results.append(row)
         print(f"✅ {kind}: {path}" + (f" (+스토리 {story_path.name})" if story_path else ""))
+
     (config.OUT_DIR / "captions.json").write_text(
         json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    if skipped:
+        log.warning("건너뛴 카드: %s", ", ".join(skipped))
+    if broken:
+        log.error("실패한 카드: %s", ", ".join(broken))
+        return 1
+    if not results:
+        log.warning("만들 카드가 없습니다 (전부 건너뜀). 이후 단계도 건너뜁니다.")
     return 0
 
 
@@ -109,8 +135,8 @@ def cmd_post(args) -> int:
             except Exception as e:                # noqa: BLE001
                 log.error("%s 카드 생성 실패, 건너뜁니다: %s", kind, e)
     if not made:
-        log.error("생성된 카드가 없습니다.")
-        return 1
+        log.warning("올릴 카드가 없습니다. 게시를 건너뜁니다.")
+        return 0
 
     if config.DRY_RUN:
         for kind, path, _ in made:

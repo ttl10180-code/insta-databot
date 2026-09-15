@@ -57,3 +57,26 @@ def test_mascot_image_exists(kind):
     """모든 카드가 실제로 존재하는 마스코트 파일을 가리킨다."""
     _, ctx, _ = sample.build(kind, NOW)
     assert (config.ROOT / "assets" / "mascot" / ctx["mascot"]).exists()
+
+
+def test_render_survives_a_missing_key(monkeypatch, tmp_path):
+    """키가 없는 카드 하나 때문에 워크플로 전체가 죽으면 안 된다.
+
+    2026-09-15 첫 실행에서 KOBIS_KEY 가 없다는 이유로 render 가 exit 1 을
+    돌려 워크플로가 통째로 실패했다. 그 회귀를 막는다.
+    """
+    from argparse import Namespace
+    from src import main
+
+    monkeypatch.setattr(config, "KOBIS_KEY", "")
+    monkeypatch.setattr(config, "OUT_DIR", tmp_path)
+    monkeypatch.setattr(main.config, "OUT_DIR", tmp_path)
+
+    # 키 없는 카드만 → 오류가 아니라 '오늘은 없음'
+    code = main.cmd_render(Namespace(kinds=["boxoffice"], sample=False, story=False))
+    assert code == 0
+
+    # 키 없는 카드 + 정상 카드 → 정상 카드는 그대로 나온다
+    code = main.cmd_render(Namespace(kinds=["boxoffice", "weather"], sample=True, story=False))
+    assert code == 0
+    assert list(tmp_path.glob("*-weather.jpg"))
