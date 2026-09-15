@@ -1,9 +1,14 @@
-name: 평일 아침 · 유가
+name: 평일 아침 · 유가 (보류)
 
+# ── 보류 중 (2026-09-16) ─────────────────────────────────────────
+# OPINET_KEY 미발급. 오피넷(www.opinet.co.kr)에서 Open API 키를 받아
+# GitHub Secrets 에 OPINET_KEY 로 넣으면 바로 동작한다.
+# 코드는 정상이며, 키가 없으면 이 카드만 조용히 건너뛴다.
+# 키를 넣은 뒤 아래 schedule 주석을 풀면 된다.
 on:
-  schedule:
-    # 평일 08:00 KST = 23:00 UTC 전날 (일~목 UTC)
-    - cron: '0 23 * * 0-4'
+  # schedule:
+  #   # 평일 08:00 KST = 23:00 UTC 전날 (일~목 UTC)
+  #   - cron: '0 23 * * 0-4'
   workflow_dispatch:
     inputs:
       dry_run:
