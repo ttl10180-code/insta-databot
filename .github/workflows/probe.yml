@@ -1,0 +1,23 @@
+name: 접속 가능 확인 (수동)
+
+# GitHub Actions 러너(해외 IP)에서 어떤 국내 기관 서버에 닿는지 확인한다.
+# 안전Dream처럼 해외 IP를 막는 곳이 있어, 연동 전에 먼저 찔러 보려고 만들었다.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 호스트별 응답 확인
+        run: |
+          for host in \
+            apis.data.go.kr \
+            www.safetydata.go.kr \
+            www.safe182.go.kr \
+            oapi.koreaexim.go.kr \
+            www.kobis.or.kr
+          do
+            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "https://$host/" || echo "연결실패")
+            printf '%-26s %s\n' "$host" "$code"
+          done
