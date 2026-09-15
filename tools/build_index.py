@@ -21,6 +21,7 @@ LABEL = {
     "boxoffice": "박스오피스", "boxoffice_weekly": "주말 박스오피스",
     "exchange": "환율", "price": "장바구니 물가",
     "realestate": "부동산", "apply": "아파트 청약", "oil": "유가",
+    "missing": "실종자 찾기",
 }
 
 
@@ -48,8 +49,8 @@ def main(dest: Path) -> None:
     todays = [f for f in todays if not is_story(f)]
     older = [f for f in files if f.startswith(today) is False and not is_story(f)][:40]
 
-    order = ["weather", "air", "lifeindex", "boxoffice", "boxoffice_weekly",
-             "exchange", "price", "realestate", "apply", "oil"]
+    order = ["missing", "weather", "air", "lifeindex", "boxoffice",
+             "boxoffice_weekly", "exchange", "price", "realestate", "apply", "oil"]
     todays.sort(key=lambda f: order.index(kind_of(f)) if kind_of(f) in order else 99)
 
     date_label = ""
@@ -98,6 +99,7 @@ def main(dest: Path) -> None:
   .dot.lifeindex {{ background: #84CC16; }} .dot.boxoffice {{ background: #8B5CF6; }}
   .dot.boxoffice_weekly {{ background: #8B5CF6; }} .dot.exchange {{ background: #06B6D4; }}
   .dot.price {{ background: #F43F5E; }} .dot.apply {{ background: #D97706; }}
+  .dot.missing {{ background: #4A7BD9; }}
   img {{ width: 100%; border-radius: 16px; display: block; }}
   .cap {{ margin-top: 12px; background: #141C31; border: 1px solid #22304F;
           border-radius: 14px; padding: 14px; }}

@@ -171,7 +171,7 @@ _MISSING_ITEMS = [
 MISSING = {
     "date_label": "9월 15일",
     "head": _MISSING_ITEMS[0], "items": _MISSING_ITEMS, "rest": _MISSING_ITEMS[1:],
-    "count": 3, "shown": 3, "long_cases": 1, "with_photo": 0,
+    "count": 3, "shown": 3, "long_cases": 1, "max_years": 14, "with_photo": 0,
 }
 
 DATA = {

@@ -20,8 +20,8 @@
         <span class="chip__value">182<small>국번없이 · 24시간</small></span></div>
       <div class="chip"><span class="chip__label">경보 발령</span>
         <span class="chip__value">{{ d.count }}<small>명</small></span></div>
-      <div class="chip"><span class="chip__label">5년 이상</span>
-        <span class="chip__value">{{ d.long_cases }}<small>명</small></span></div>
+      <div class="chip"><span class="chip__label">가장 오래된 건</span>
+        <span class="chip__value">{{ d.max_years }}<small>년째</small></span></div>
     </div>
     <p class="note">확실하지 않아도 괜찮습니다. 비슷한 분을 보셨다면 182로 알려주세요.</p>
 {% endblock %}

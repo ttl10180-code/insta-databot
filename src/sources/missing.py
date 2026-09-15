@@ -174,6 +174,25 @@ def _age(row: dict) -> str:
     return f"{now_age or then_age}세" if (now_age or then_age) else "나이 미상"
 
 
+def _place(raw) -> str:
+    """'충청북도 청주시 서원구 …' → '충북 청주시'.
+    카드 한 줄에 들어가야 해서 시·군·구까지만 남긴다."""
+    SHORT = {"서울특별시": "서울", "부산광역시": "부산", "대구광역시": "대구",
+             "인천광역시": "인천", "광주광역시": "광주", "대전광역시": "대전",
+             "울산광역시": "울산", "세종특별자치시": "세종",
+             "경기도": "경기", "강원특별자치도": "강원", "강원도": "강원",
+             "충청북도": "충북", "충청남도": "충남", "전라북도": "전북",
+             "전북특별자치도": "전북", "전라남도": "전남",
+             "경상북도": "경북", "경상남도": "경남",
+             "제주특별자치도": "제주"}
+    parts = str(raw or "").split()
+    if not parts:
+        return "장소 미상"
+    head = SHORT.get(parts[0], parts[0])
+    rest = next((p for p in parts[1:] if p.endswith(("시", "군", "구"))), "")
+    return f"{head} {rest}".strip()
+
+
 def _date_label(raw: str) -> str:
     raw = str(raw or "").replace("-", "").strip()
     for fmt in ("%Y%m%d", "%Y%m%d%H%M%S"):
@@ -186,9 +205,12 @@ def _date_label(raw: str) -> str:
 
 
 def _years_since(raw: str, now: datetime) -> int | None:
-    raw = str(raw or "").replace("-", "").strip()[:8]
+    """실종 후 몇 해가 지났는지. 발생일 표기가 섞여 와서 숫자만 추려 쓴다."""
+    digits = "".join(ch for ch in str(raw or "") if ch.isdigit())[:8]
+    if len(digits) != 8:
+        return None
     try:
-        d = datetime.strptime(raw, "%Y%m%d")
+        d = datetime.strptime(digits, "%Y%m%d")
     except ValueError:
         return None
     return max(0, (now.replace(tzinfo=None) - d).days // 365)
@@ -220,7 +242,7 @@ def fetch(now: datetime | None = None) -> dict:
             "age": _age(r),
             "sex": str(r.get("sexdstnDscd") or "").strip() or "-",
             "target": TARGET_LABEL.get(str(r.get("writngTrgetDscd") or "").strip(), "실종자"),
-            "place": str(r.get("occrAdres") or "장소 미상").strip(),
+            "place": _place(r.get("occrAdres")),
             "day": _date_label(occ),
             "years": _years_since(occ, now),
             "feature": " · ".join(x for x in [
@@ -235,6 +257,7 @@ def fetch(now: datetime | None = None) -> dict:
     items.sort(key=lambda i: 0 if i["photo"] else 1)
     head = items[0]
     long_cases = sum(1 for i in items if (i["years"] or 0) >= 5)
+    max_years = max((i["years"] or 0) for i in items)
     return {
         "date_label": f"{now.month}월 {now.day}일",
         "head": head,
@@ -244,4 +267,5 @@ def fetch(now: datetime | None = None) -> dict:
         "shown": len(items),
         "with_photo": with_photo,
         "long_cases": long_cases,
+        "max_years": max_years,
     }
