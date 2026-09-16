@@ -124,7 +124,8 @@ def load_rendered(kinds: list[str]):
     for kind in kinds:
         r = rows.get(kind)
         if not r:
-            log.error("%s 는 render 결과에 없습니다. 건너뜁니다.", kind)
+            # 건너뛴 카드(NoData)는 정상이다. 오류로 보이면 원인 파악만 헷갈린다.
+            log.warning("%s 는 render 결과에 없습니다. 건너뜁니다.", kind)
             continue
         path = Path(r["file"])
         if not path.exists():
@@ -167,7 +168,12 @@ def cmd_post(args) -> int:
     if args.carousel and len(made) >= 2:
         urls = [public_url(p) for _, p, _ in made]
         caption = made[0][2]
-        media_id = instagram.publish_carousel(urls, caption)
+        try:
+            media_id = instagram.publish_carousel(urls, caption)
+        except Exception as e:                    # noqa: BLE001
+            # 트레이스백을 그대로 뱉으면 로그에서 원인을 찾기 어렵다.
+            log.error("캐러셀 게시 실패: %s", e)
+            return 1
         print(f"✅ 캐러셀 게시 완료 media_id={media_id}")
         return 0
 
