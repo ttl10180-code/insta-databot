@@ -24,9 +24,11 @@ from pathlib import Path
 import requests
 from PIL import Image
 
-from punch_backgrounds import punch
+try:                                    # python tools/build_backgrounds.py
+    from punch_backgrounds import punch
+except ImportError:                     # python -m tools.build_backgrounds
+    from tools.punch_backgrounds import punch
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))   # punch_backgrounds 를 옆에서 찾는다
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "bg"
 API = "https://api.openai.com/v1/images/generations"
