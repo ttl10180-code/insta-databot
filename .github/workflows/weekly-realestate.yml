@@ -3,7 +3,7 @@ name: 매주 월요일 · 아파트 실거래
 on:
   schedule:
     # 월요일 09:00 KST = 일요일 00:00 UTC
-    - cron: '0 0 * * 0'
+    - cron: '7 0 * * 0'           # 00:07 UTC 일 = 09:07 KST 일 (정각은 밀린다)
   workflow_dispatch:
     inputs:
       dry_run:

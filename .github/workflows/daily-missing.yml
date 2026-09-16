@@ -3,7 +3,7 @@ name: 매일 · 실종자 찾기
 # 실종경보는 수시로 갱신된다. 사람이 가장 많이 보는 저녁 시간에 한 번 올린다.
 on:
   schedule:
-    - cron: '0 10 * * *'          # 10:00 UTC = 19:00 KST
+    - cron: '7 10 * * *'          # 10:07 UTC = 19:07 KST (정각은 밀린다)
   workflow_dispatch:
     inputs:
       dry_run:

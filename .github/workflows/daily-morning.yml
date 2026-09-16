@@ -2,8 +2,9 @@ name: 매일 아침 · 날씨 + 대기질 + 생활지수
 
 on:
   schedule:
-    # 07:30 KST (UTC+9) = 22:30 UTC 전날
-    - cron: '30 22 * * *'
+    # 07:27 KST (UTC+9) = 22:27 UTC 전날
+    # 정각·30분은 깃허브 예약 실행이 가장 많이 밀리는 시각이라 일부러 비켜 둔다.
+    - cron: '27 22 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
