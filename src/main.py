@@ -55,8 +55,12 @@ def cmd_render(args) -> int:
     """카드를 만든다. 한 카드가 실패해도 나머지는 계속 만든다.
 
     키가 없거나(NoData) 그날 데이터가 없는 카드 하나 때문에 워크플로 전체가
-    죽으면, 정상인 다른 카드까지 발행이 멈춘다. 그래서 카드 단위로 격리하고
-    한 장이라도 만들어졌으면 성공으로 끝낸다.
+    죽으면, 정상인 다른 카드까지 발행이 멈춘다. 그래서 카드 단위로 격리한다.
+
+    실패한 카드가 있어도 여기서는 0 으로 끝낸다. 여기서 1 을 돌려주면
+    뒤따르는 배포·게시 스텝이 통째로 건너뛰어져, 멀쩡하게 만들어진 카드까지
+    발행되지 않기 때문이다. 실패 사실은 broken.txt 에 남기고 마지막
+    'check' 명령이 읽어서 빨간 X 를 띄운다 (게시가 끝난 뒤에).
     """
     now = datetime.now(config.KST)
     config.OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -85,12 +89,29 @@ def cmd_render(args) -> int:
 
     if skipped:
         log.warning("건너뛴 카드: %s", ", ".join(skipped))
+    broken_file = config.OUT_DIR / "broken.txt"
     if broken:
-        log.error("실패한 카드: %s", ", ".join(broken))
-        return 1
+        log.error("실패한 카드: %s (게시는 계속 진행합니다)", ", ".join(broken))
+        broken_file.write_text("\n".join(broken), encoding="utf-8")
+    elif broken_file.exists():
+        broken_file.unlink()
     if not results:
         log.warning("만들 카드가 없습니다 (전부 건너뜀). 이후 단계도 건너뜁니다.")
     return 0
+
+
+def cmd_check(args) -> int:
+    """렌더 단계에서 실패한 카드가 있었으면 이제서야 실패로 끝낸다.
+
+    게시가 모두 끝난 뒤에 호출해야 한다. 그래야 실패한 카드 하나 때문에
+    성공한 카드의 게시가 막히지 않으면서도, 실패는 눈에 보인다.
+    """
+    broken_file = config.OUT_DIR / "broken.txt"
+    if not broken_file.exists():
+        return 0
+    names = broken_file.read_text(encoding="utf-8").strip()
+    log.error("이번 실행에서 만들지 못한 카드: %s", names.replace("\n", ", "))
+    return 1
 
 
 def load_rendered(kinds: list[str]):
@@ -193,6 +214,9 @@ def main(argv=None) -> int:
 
     t = sub.add_parser("refresh-token", help="인스타그램 장기 토큰 갱신")
     t.set_defaults(func=cmd_refresh_token)
+
+    c = sub.add_parser("check", help="렌더 실패가 있었으면 실패로 끝낸다 (게시 이후에 호출)")
+    c.set_defaults(func=cmd_check)
 
     args = p.parse_args(argv)
     return args.func(args)

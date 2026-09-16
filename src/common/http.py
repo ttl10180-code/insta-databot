@@ -94,6 +94,13 @@ def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
             if e.code in {"30", "31", "32", "20", "12", "22"}:
                 raise
             last = e
+        except requests.HTTPError as e:
+            # 4xx 는 요청이 잘못된 것이라 재시도해도 같은 답이 온다.
+            # (429 만 예외 — 잠시 뒤에 다시 하면 된다)
+            code = getattr(e.response, "status_code", None)
+            if code and 400 <= code < 500 and code != 429:
+                raise
+            last = e
         except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
             last = e
         if attempt < retries:

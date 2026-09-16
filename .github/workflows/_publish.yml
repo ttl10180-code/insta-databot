@@ -119,3 +119,10 @@ jobs:
         run: |
           python -m src.main post ${{ inputs.cards }} --reuse \
             ${{ inputs.carousel && '--carousel' || '' }}
+
+      - name: 실패한 카드 확인
+        # 렌더 단계에서 만들지 못한 카드가 있으면 여기서 빨간 X 를 띄운다.
+        # 게시가 모두 끝난 뒤라서, 실패 한 장이 성공한 카드의 게시를 막지 않는다.
+        id: render-check
+        if: always()
+        run: python -m src.main check

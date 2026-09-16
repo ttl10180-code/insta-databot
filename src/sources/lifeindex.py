@@ -61,7 +61,9 @@ def _call(endpoint: str, area: str, time_str: str) -> dict | None:
             "pageNo": 1, "numOfRows": 10, "dataType": "JSON",
             "areaNo": area, "time": time_str,
         })
-    except (http.PortalError, ValueError) as e:
+    except Exception as e:              # noqa: BLE001
+        # 지수마다 서비스가 갈려 있어 어떤 건 400 을 주고 어떤 건 닫혀 있다.
+        # 하나가 죽어도 나머지로 카드를 만든다 (전부 죽으면 아래에서 NoData).
         log.info("%s 건너뜀: %s", endpoint, e)
         return None
     items = http.as_list(
