@@ -24,6 +24,9 @@ from pathlib import Path
 import requests
 from PIL import Image
 
+from punch_backgrounds import punch
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # punch_backgrounds 를 옆에서 찾는다
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "assets" / "bg"
 API = "https://api.openai.com/v1/images/generations"
@@ -33,12 +36,13 @@ SIZE = "1024x1024"
 # 모든 배경이 공유하는 규칙. 카드 위에 글자가 올라가므로
 # 중앙은 비우고, 문자·캐릭터·로고는 절대 넣지 않는다.
 STYLE = (
-    "Abstract minimal background artwork for a data card. "
-    "Soft 3D clay-render aesthetic with gentle studio lighting, smooth matte surfaces, "
-    "shallow depth of field. Very dark {tone} color scheme, low contrast, muted. "
-    "Composition: empty and calm in the center and left side, visual interest only near "
-    "the top-right and bottom edges. No text, no letters, no numbers, no logos, "
-    "no characters, no people, no animals. Not photorealistic. Square."
+    "Bold abstract 3D background artwork for a social media data card. "
+    "Soft clay-render aesthetic with dramatic studio lighting, strong rim light and a "
+    "clear light source, smooth matte surfaces, deep shadows next to bright highlights. "
+    "Rich saturated {tone} palette, cinematic, confident. "
+    "Composition: large sculptural forms occupy the right half and the upper-right; "
+    "the left side stays open so text can sit there. No text, no letters, no numbers, "
+    "no logos, no characters, no people, no animals. Not photorealistic. Square."
 )
 
 # (테마, 변형, 톤, 모티프)
@@ -130,7 +134,10 @@ def main() -> int:
             continue
         try:
             im = generate(key, prompt_for(tone, motif))
-            im.resize((1080, 1080), Image.LANCZOS).save(path, "JPEG", quality=86, optimize=True)
+            # 원본은 카드에 깔면 그라디언트와 구분이 안 될 만큼 어둡다.
+            # 여기서 한 번만 펴 준다 (이미 있는 파일에 다시 돌리면 과해진다).
+            im = punch(im.resize((1080, 1080), Image.LANCZOS))
+            im.save(path, "JPEG", quality=90, optimize=True)
             print(f"생성 {path.name}")
             made += 1
             time.sleep(1.2)                   # 레이트 리밋 여유
