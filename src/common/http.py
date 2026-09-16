@@ -12,6 +12,7 @@ import json
 import logging
 import time
 from typing import Any
+from urllib.parse import urlsplit
 
 import requests
 import xmltodict
@@ -27,6 +28,30 @@ BACKOFF = 2.5
 # 포털 공통 결과코드
 OK_CODES = {"00", "000"}
 NODATA_CODES = {"03", "003"}
+
+
+class HostDown(RuntimeError):
+    """이번 실행에서 이미 연결 불가로 판명된 서버.
+
+    국내 정부 서버는 해외(GitHub Actions) 러너에서 통째로 닿지 않는 시간대가
+    있다. 그럴 때 소스마다 4회씩 25초 연결 타임아웃을 다시 겪으면 한 번
+    실행에 20분이 넘게 날아간다. 한 호스트가 재시도를 전부 소진하고
+    연결조차 못 했으면, 같은 실행 안에서는 곧바로 포기한다."""
+
+
+# 이번 프로세스에서 연결 자체가 불가능하다고 판명된 호스트 → 사유
+_DEAD_HOSTS: dict[str, str] = {}
+
+
+def mark_host_down(host: str, reason: str) -> None:
+    if host and host not in _DEAD_HOSTS:
+        log.error("%s 에 연결할 수 없습니다. 이번 실행에서는 더 시도하지 않습니다.", host)
+        _DEAD_HOSTS[host] = reason
+
+
+def reset_host_state() -> None:
+    """테스트용 — 판정을 지운다."""
+    _DEAD_HOSTS.clear()
 
 
 class PortalError(RuntimeError):
@@ -77,7 +102,12 @@ def _check_header(doc: Any) -> None:
 def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
         retries: int = MAX_RETRIES, check_header: bool = True) -> Any:
     """GET 후 JSON/XML 자동 판별 파싱. 일시적 오류는 지수 백오프 재시도."""
+    host = urlsplit(url).hostname or ""
+    if host in _DEAD_HOSTS:
+        raise HostDown(f"{host} 에 연결할 수 없습니다: {_DEAD_HOSTS[host]}")
+
     last: Exception | None = None
+    unreachable = 0          # 응답조차 못 받은 횟수 (연결 실패·타임아웃)
     for attempt in range(1, retries + 1):
         try:
             r = requests.get(url, params=params, timeout=timeout,
@@ -101,12 +131,19 @@ def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
             if code and 400 <= code < 500 and code != 429:
                 raise
             last = e
+        except (requests.ConnectionError, requests.Timeout) as e:
+            # 서버가 대답을 아예 안 했다 — 응답이 이상한 것과는 다른 문제다.
+            unreachable += 1
+            last = e
         except (requests.RequestException, ValueError, json.JSONDecodeError) as e:
             last = e
         if attempt < retries:
             wait = BACKOFF ** attempt
             log.warning("요청 실패(%s/%s) %s · %.1fs 후 재시도", attempt, retries, last, wait)
             time.sleep(wait)
+    if unreachable == retries:
+        mark_host_down(host, str(last))
+        raise HostDown(f"{host} 에 연결할 수 없습니다: {last}") from last
     raise RuntimeError(f"요청이 {retries}회 모두 실패했습니다: {last}") from last
 
 
