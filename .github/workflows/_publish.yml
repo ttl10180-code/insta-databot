@@ -30,21 +30,37 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write               # gh-pages 브랜치에 카드 이미지를 푸시
+      actions: read                 # "오늘 이미 올렸나" 를 지난 실행 기록으로 판단
 
     steps:
       - uses: actions/checkout@v4
 
+      # 예약 실행은 하루에 여러 번 잡혀 있다. 국내 API 가 잠깐 안 닿거나
+      # 깃허브 예약이 통째로 밀려도 그날 안에 스스로 다시 시도하기 위해서다.
+      # 대신 이미 성공한 날은 두 번 올리면 안 되므로, 같은 워크플로가 오늘
+      # (한국시간 기준) 성공한 적이 있으면 여기서 조용히 끝낸다.
+      # 손으로 돌린 실행은 이 검사를 건너뛴다 — 일부러 다시 올리려는 것이니까.
+      - name: 오늘 이미 올렸는지 확인
+        id: guard
+        if: github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/already_posted_today.py   # setup-python 전이라 시스템 python3 을 쓴다
+
       - uses: actions/setup-python@v5
+        if: steps.guard.outputs.done != 'true'
         with:
           python-version: '3.12'
           cache: pip
 
       - name: 의존성 설치
+        if: steps.guard.outputs.done != 'true'
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
       - name: 이모지 폰트 설치
+        if: steps.guard.outputs.done != 'true'
         # 본문 폰트(Pretendard)는 저장소에 포함되어 @font-face 로 로드되지만,
         # 이모지는 시스템 폰트가 필요하다. 없으면 □□□ 로 렌더링된다.
         run: |
@@ -53,9 +69,11 @@ jobs:
           fc-cache -f
 
       - name: Playwright Chromium 설치
+        if: steps.guard.outputs.done != 'true'
         run: python -m playwright install --with-deps chromium
 
       - name: 카드 생성
+        if: steps.guard.outputs.done != 'true'
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
@@ -76,6 +94,7 @@ jobs:
         run: python -m src.main render ${{ inputs.cards }} --story
 
       - name: 결과 이미지 아티팩트 업로드
+        if: steps.guard.outputs.done != 'true'
         uses: actions/upload-artifact@v4
         with:
           name: cards-${{ github.run_id }}
@@ -83,17 +102,18 @@ jobs:
           retention-days: 14
 
       - name: GitHub Pages 로 카드 배포
+        if: steps.guard.outputs.done != 'true'
         id: pages
         run: bash scripts/publish_pages.sh
 
       - name: 공개 URL 준비 대기
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && steps.guard.outputs.done != 'true' }}
         env:
           PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
         run: python scripts/wait_for_pages.py out
 
       - name: 인스타그램 게시
-        if: ${{ !inputs.dry_run }}
+        if: ${{ !inputs.dry_run && steps.guard.outputs.done != 'true' }}
         env:
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
@@ -124,5 +144,5 @@ jobs:
         # 렌더 단계에서 만들지 못한 카드가 있으면 여기서 빨간 X 를 띄운다.
         # 게시가 모두 끝난 뒤라서, 실패 한 장이 성공한 카드의 게시를 막지 않는다.
         id: render-check
-        if: always()
+        if: always() && steps.guard.outputs.done != 'true'
         run: python -m src.main check
