@@ -44,6 +44,8 @@ jobs:
 
       - name: 수집
         env:
+          KR_RELAY_URL: ${{ secrets.KR_RELAY_URL }}
+          KR_RELAY_KEY: ${{ secrets.KR_RELAY_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
           EXIM_KEY: ${{ secrets.EXIM_KEY }}

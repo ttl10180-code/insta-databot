@@ -53,6 +53,13 @@ SAFE182_AUTH_KEY = env("SAFE182_AUTH_KEY")
 # 장바구니 물가는 KAMIS 별도 키 대신 공공데이터포털
 # '한국농수산식품유통공사_일별 도,소매 가격정보 조회' 를 쓴다 (DATA_GO_KR_KEY 사용)
 
+# ---------------- 국내 API 중계 (서울) ----------------
+# 해외 러너에서 국내 정부 서버가 안 닿는 시간대를 피하려고, 요청만 서울에 둔
+# Supabase Edge Function 을 거쳐 보낸다. 둘 다 비어 있으면 중계를 쓰지 않고
+# 예전처럼 직접 연결한다 (src/common/relay.py).
+KR_RELAY_URL = env("KR_RELAY_URL")
+KR_RELAY_KEY = env("KR_RELAY_KEY")
+
 # ---------------- 인스타그램 ----------------
 # IG_LOGIN_MODE: "instagram" (graph.instagram.com) | "facebook" (graph.facebook.com)
 IG_LOGIN_MODE = env("IG_LOGIN_MODE", "facebook").lower()

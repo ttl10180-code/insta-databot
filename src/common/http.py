@@ -17,6 +17,8 @@ from urllib.parse import urlsplit
 import requests
 import xmltodict
 
+from src.common import relay
+
 log = logging.getLogger(__name__)
 
 # (연결, 읽기) 초. 해외 러너 → 국내 정부 서버는 연결 자체가 느릴 때가 있어
@@ -99,6 +101,21 @@ def _check_header(doc: Any) -> None:
     raise PortalError(code, msg or "unknown service error")
 
 
+def _fetch(url: str, params: dict, timeout) -> requests.Response:
+    """서울 중계기를 먼저 쓰고, 안 되면 직접 연결로 되돌아간다.
+
+    중계기가 고장나더라도 어제까지와 똑같이 동작해야 한다. 새로 깐 경로가
+    무너졌을 때 발행 전체가 멈추면, 고치려던 문제를 더 키우는 셈이다.
+    """
+    headers = {"User-Agent": "insta-databot/1.0"}
+    if relay.enabled():
+        try:
+            return relay.request("GET", url, params=params, headers=headers)
+        except relay.RelayUnavailable as e:
+            log.warning("서울 중계 실패 → 직접 연결로 시도합니다: %s", e)
+    return requests.get(url, params=params, timeout=timeout, headers=headers)
+
+
 def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
         retries: int = MAX_RETRIES, check_header: bool = True) -> Any:
     """GET 후 JSON/XML 자동 판별 파싱. 일시적 오류는 지수 백오프 재시도."""
@@ -110,8 +127,7 @@ def get(url: str, params: dict, *, timeout=DEFAULT_TIMEOUT,
     unreachable = 0          # 응답조차 못 받은 횟수 (연결 실패·타임아웃)
     for attempt in range(1, retries + 1):
         try:
-            r = requests.get(url, params=params, timeout=timeout,
-                             headers={"User-Agent": "insta-databot/1.0"})
+            r = _fetch(url, params, timeout)
             r.raise_for_status()
             doc = _parse(r.text)
             if check_header:

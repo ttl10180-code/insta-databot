@@ -26,7 +26,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
 
 from src import config
-from src.common import cache, http
+from src.common import cache, http, relay
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +52,25 @@ def _session() -> requests.Session:
     s.headers["User-Agent"] = "insta-databot/1.0"
     return s
 
+def _send(method: str, url: str, *, params: dict | None = None,
+          form: dict | None = None, headers: dict | None = None) -> requests.Response:
+    """서울 중계기를 먼저 쓰고, 안 되면 직접 연결로 되돌아간다.
+
+    안전Dream 은 국내 러너에서도 느린 데다 해외에서는 아예 안 닿는 때가 있다.
+    직접 연결 쪽은 TLS 보안수준을 낮춘 세션이 필요한데(_LegacyTLSAdapter),
+    중계기(Deno)는 그 핸드셰이크를 그냥 통과하므로 중계 쪽이 더 단순하다.
+    """
+    if relay.enabled():
+        try:
+            return relay.request(method, url, params=params, form=form, headers=headers)
+        except relay.RelayUnavailable as e:
+            log.warning("서울 중계 실패 → 직접 연결로 시도합니다: %s", e)
+    s = _session()
+    if method.upper() == "POST":
+        return s.post(url, data=form, timeout=http.DEFAULT_TIMEOUT, headers=headers)
+    return s.get(url, params=params, timeout=http.DEFAULT_TIMEOUT, headers=headers)
+
+
 # 대상 구분 코드 → 카드에 쓸 짧은 말
 TARGET_LABEL = {
     "010": "아동", "020": "가출인", "040": "무연고자",
@@ -73,7 +92,7 @@ def _post(params: dict) -> dict:
     last: Exception | None = None
     for attempt in range(1, http.MAX_RETRIES + 1):
         try:
-            r = _session().post(URL, data=body, timeout=http.DEFAULT_TIMEOUT)
+            r = _send("POST", URL, form=body)
             r.raise_for_status()
             doc = http._parse(r.text)
             return doc if isinstance(doc, dict) else {}
@@ -143,10 +162,9 @@ def _fetch_photo(row: dict) -> str | None:
     r = None
     for attempt in (1, 2):
         try:
-            r = _session().get(PHOTO_URL,
-                               params={"msspsnIdntfccd": idn, "rptDscd": rpt},
-                               timeout=http.DEFAULT_TIMEOUT,
-                               headers={"Referer": "https://www.safe182.go.kr/"})
+            r = _send("GET", PHOTO_URL,
+                      params={"msspsnIdntfccd": idn, "rptDscd": rpt},
+                      headers={"Referer": "https://www.safe182.go.kr/"})
             r.raise_for_status()
             break
         except requests.RequestException as e:

@@ -75,6 +75,8 @@ jobs:
       - name: 카드 생성
         if: steps.guard.outputs.done != 'true'
         env:
+          KR_RELAY_URL: ${{ secrets.KR_RELAY_URL }}
+          KR_RELAY_KEY: ${{ secrets.KR_RELAY_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
@@ -115,6 +117,8 @@ jobs:
       - name: 인스타그램 게시
         if: ${{ !inputs.dry_run && steps.guard.outputs.done != 'true' }}
         env:
+          KR_RELAY_URL: ${{ secrets.KR_RELAY_URL }}
+          KR_RELAY_KEY: ${{ secrets.KR_RELAY_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
           OPINET_KEY: ${{ secrets.OPINET_KEY }}
           KOBIS_KEY: ${{ secrets.KOBIS_KEY }}
