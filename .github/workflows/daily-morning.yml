@@ -20,6 +20,7 @@ jobs:
   run:
     permissions:
       contents: write
+      actions: read           # _publish 가 '오늘 이미 올렸나' 를 실행 기록으로 판단한다
     uses: ./.github/workflows/_publish.yml
     with:
       cards: 'weather air lifeindex'
