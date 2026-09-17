@@ -1,7 +1,8 @@
 name: 접속 가능 확인 (수동)
 
-# GitHub Actions 러너(해외 IP)에서 어떤 국내 기관 서버에 닿는지 확인한다.
-# 안전Dream처럼 해외 IP를 막는 곳이 있어, 연동 전에 먼저 찔러 보려고 만들었다.
+# 국내 기관 서버에 닿는지 확인한다. curl 과 파이썬(requests)을 같은 러너에서
+# 나란히 찔러 본다 — 둘의 결과가 갈리면 네트워크가 아니라 우리 쪽 HTTP
+# 클라이언트 문제다. 안전Dream 때 실제로 그랬다(TLS 핸드셰이크).
 on:
   workflow_dispatch:
 
@@ -9,15 +10,57 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: 호스트별 응답 확인
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -q requests
+
+      - name: curl 로 확인
         run: |
-          for host in \
-            apis.data.go.kr \
-            www.safetydata.go.kr \
-            www.safe182.go.kr \
-            oapi.koreaexim.go.kr \
-            www.kobis.or.kr
+          for host in apis.data.go.kr www.safetydata.go.kr www.safe182.go.kr \
+                      oapi.koreaexim.go.kr www.kobis.or.kr
           do
             code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 12 "https://$host/" || echo "연결실패")
-            printf '%-26s %s\n' "$host" "$code"
+            printf 'curl    %-26s %s\n' "$host" "$code"
           done
+
+      - name: 파이썬(requests) 로 확인
+        # 카드 생성이 쓰는 것과 같은 라이브러리·같은 타임아웃으로 찌른다.
+        run: |
+          python3 - <<'PY'
+          import socket, requests
+          HOSTS = ["apis.data.go.kr", "www.safetydata.go.kr", "www.safe182.go.kr",
+                   "oapi.koreaexim.go.kr", "www.kobis.or.kr"]
+          for h in HOSTS:
+              try:
+                  ips = sorted({r[4][0] for r in socket.getaddrinfo(h, 443)})
+              except Exception as e:
+                  ips = [f"DNS실패 {e}"]
+              try:
+                  r = requests.get(f"https://{h}/", timeout=(12, 20),
+                                   headers={"User-Agent": "insta-databot/1.0"})
+                  out = str(r.status_code)
+              except Exception as e:
+                  out = f"{type(e).__name__}"
+              print(f"python  {h:<26} {out:<24} {','.join(ips)}")
+          PY
+
+      - name: IPv4 만 써서 확인
+        # requests 는 DNS 가 주는 순서대로 IPv6 를 먼저 시도한다. 러너에
+        # IPv6 경로가 없으면 그쪽에서 타임아웃이 나는데, curl 은 Happy
+        # Eyeballs 로 IPv4 로 금방 넘어가서 멀쩡해 보인다. 그 차이를 본다.
+        run: |
+          python3 - <<'PY'
+          import socket, requests, urllib3.util.connection as conn
+          conn.allowed_gai_family = lambda: socket.AF_INET      # IPv4 고정
+          for h in ["apis.data.go.kr", "www.safetydata.go.kr", "www.safe182.go.kr",
+                    "oapi.koreaexim.go.kr", "www.kobis.or.kr"]:
+              try:
+                  r = requests.get(f"https://{h}/", timeout=(12, 20),
+                                   headers={"User-Agent": "insta-databot/1.0"})
+                  out = str(r.status_code)
+              except Exception as e:
+                  out = f"{type(e).__name__}"
+              print(f"IPv4만  {h:<26} {out}")
+          PY
