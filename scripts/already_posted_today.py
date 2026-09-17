@@ -32,18 +32,30 @@ def _out(done: bool, why: str) -> int:
     return 0
 
 
+def _workflow_file() -> str:
+    """이 실행을 일으킨 워크플로 파일 이름.
+
+    GITHUB_WORKFLOW_REF 는
+    owner/repo/.github/workflows/daily-morning.yml@refs/heads/main
+    형태로 온다. 재사용 워크플로 안에서도 '호출한 쪽' 파일을 가리킨다."""
+    ref = os.environ.get("GITHUB_WORKFLOW_REF", "")
+    return ref.split("@", 1)[0].rsplit("/", 1)[-1] if ref else ""
+
+
 def main() -> int:
     repo = os.environ.get("GITHUB_REPOSITORY", "")
-    wf = os.environ.get("GITHUB_WORKFLOW", "")
+    wf_file = _workflow_file()
     run_id = os.environ.get("GITHUB_RUN_ID", "")
-    if not repo or not wf:
+    if not repo or not wf_file:
         return _out(False, "실행 정보를 읽지 못했습니다")
 
+    # 워크플로별 엔드포인트를 쓴다. 전체 실행 목록에서 이름으로 고르면
+    # 바쁜 날에는 한 페이지 안에 이 워크플로 기록이 없을 수 있다.
     try:
         raw = subprocess.run(
-            ["gh", "api", f"repos/{repo}/actions/runs",
-             "-X", "GET", "-f", "status=success", "-f", "per_page=30",
-             "--jq", ".workflow_runs[] | {name, id, created_at}"],
+            ["gh", "api", f"repos/{repo}/actions/workflows/{wf_file}/runs",
+             "-X", "GET", "-f", "status=success", "-f", "per_page=20",
+             "--jq", ".workflow_runs[] | {id, created_at}"],
             capture_output=True, text=True, timeout=60, check=True).stdout
     except Exception as e:                        # noqa: BLE001
         return _out(False, f"실행 기록 조회 실패: {e}")
@@ -57,7 +69,7 @@ def main() -> int:
             row = json.loads(line)
         except ValueError:
             continue
-        if row.get("name") != wf or str(row.get("id")) == run_id:
+        if str(row.get("id")) == run_id:
             continue
         when = datetime.fromisoformat(
             str(row.get("created_at", "")).replace("Z", "+00:00"))
