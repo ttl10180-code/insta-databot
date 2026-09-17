@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _delta_text(diff: float | None) -> str:
     return f"전일 대비 {diff:+.1f}원"
 
 
-def fetch(area: str = None) -> dict:
+def _live_fetch(area: str = None) -> dict:
     area = area or config.OPINET_AREA
     if not config.OPINET_KEY:
         # 다른 카드와 같게 — 키가 없으면 이 카드만 조용히 건너뛴다.
@@ -95,3 +95,9 @@ def fetch(area: str = None) -> dict:
         "fuels": fuels,
         "cheapest": cheapest,
     }
+
+
+def fetch(area: str = None) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 나흘)."""
+    return cache.remember(
+        "oil", lambda: _live_fetch(area), max_age_days=4)

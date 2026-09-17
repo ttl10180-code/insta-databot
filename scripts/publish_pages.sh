@@ -7,8 +7,10 @@ BRANCH="${PAGES_BRANCH:-gh-pages}"
 WORKDIR="$(mktemp -d)"
 
 # 카드가 하나도 안 만들어졌을 수 있다 (키 없음 등). 그건 오류가 아니라 '오늘은 없음'이다.
-if ! ls out/*.jpg >/dev/null 2>&1; then
-  echo "::notice::out/ 에 업로드할 .jpg 가 없어 배포를 건너뜁니다."
+# 다만 수집에는 성공했는데 렌더에서 넘어진 경우가 있으므로, 올릴 캐시가 있으면
+# 카드가 없어도 배포는 한다 — 그 캐시가 내일 카드를 살린다.
+if ! ls out/*.jpg >/dev/null 2>&1 && ! ls out/cache/*.json >/dev/null 2>&1; then
+  echo "::notice::out/ 에 업로드할 것이 없어 배포를 건너뜁니다."
   exit 0
 fi
 
@@ -32,7 +34,14 @@ else
 fi
 
 mkdir -p "$WORKDIR/cards"
-cp out/*.jpg "$WORKDIR/cards/"
+cp out/*.jpg "$WORKDIR/cards/" 2>/dev/null || true
+
+# 이번에 수집에 성공한 원본을 cache/ 에 덮어쓴다. 실패한 소스는 파일을 만들지
+# 않으므로 지난 성공분이 그대로 남는다 (덮어쓰기만 하고 지우지 않는다).
+if ls out/cache/*.json >/dev/null 2>&1; then
+  mkdir -p "$WORKDIR/cache"
+  cp out/cache/*.json "$WORKDIR/cache/"
+fi
 
 # Jekyll 처리를 끄고(언더스코어 파일 무시 방지), 모바일 인덱스를 만든다.
 # 자동 게시가 막혀 있어도 이 페이지만 폰에서 열면 저장·복사로 바로 올릴 수 있다.

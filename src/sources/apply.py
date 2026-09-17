@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def _d(v: str | None) -> datetime | None:
         return None
 
 
-def fetch(now: datetime | None = None, days: int = 14) -> dict:
+def _live_fetch(now: datetime | None = None, days: int = 14) -> dict:
     if not config.DATA_GO_KR_KEY:
         raise http.NoData("03", "DATA_GO_KR_KEY 가 없습니다")
 
@@ -78,3 +78,9 @@ def fetch(now: datetime | None = None, days: int = 14) -> dict:
         "items": upcoming,
         "rest": upcoming[1:],
     }
+
+
+def fetch(now: datetime | None = None, days: int = 14) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 이레)."""
+    return cache.remember(
+        "apply", lambda: _live_fetch(now, days), max_age_days=7)

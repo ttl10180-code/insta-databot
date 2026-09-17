@@ -26,7 +26,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.ssl_ import create_urllib3_context
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -216,7 +216,7 @@ def _years_since(raw: str, now: datetime) -> int | None:
     return max(0, (now.replace(tzinfo=None) - d).days // 365)
 
 
-def fetch(now: datetime | None = None) -> dict:
+def _live_fetch(now: datetime | None = None) -> dict:
     if not (config.SAFE182_ESNTL_ID and config.SAFE182_AUTH_KEY):
         raise http.NoData("03", "SAFE182_ESNTL_ID / SAFE182_AUTH_KEY 가 없습니다")
 
@@ -269,3 +269,9 @@ def fetch(now: datetime | None = None) -> dict:
         "long_cases": long_cases,
         "max_years": max_years,
     }
+
+
+def fetch(now: datetime | None = None) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 사흘)."""
+    return cache.remember(
+        "missing", lambda: _live_fetch(now), max_age_days=3)

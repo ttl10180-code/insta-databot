@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ def _fetch_day(key: str, ymd: str) -> list[dict]:
     return [r for r in rows if str(r.get("result")) == "1"]
 
 
-def fetch(now: datetime | None = None) -> dict:
+def _live_fetch(now: datetime | None = None) -> dict:
     if not config.EXIM_KEY:
         raise http.NoData("03", "EXIM_KEY 가 없어 환율 카드를 건너뜁니다")
 
@@ -136,3 +136,9 @@ def _delta_text(diff: float | None) -> str:
     if abs(diff) < 0.005:
         return "전일과 동일"
     return f"전일 대비 {diff:+,.2f}원"
+
+
+def fetch(now: datetime | None = None) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 닷새)."""
+    return cache.remember(
+        "exchange", lambda: _live_fetch(now), max_age_days=5)

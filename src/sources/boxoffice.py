@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def _rows(items: list[dict], top: int) -> list[dict]:
     return out
 
 
-def fetch_daily(now: datetime | None = None, top: int = 5) -> dict:
+def _live_fetch_daily(now: datetime | None = None, top: int = 5) -> dict:
     """어제 일별 박스오피스. KOBIS 는 당일 집계가 없어 하루 전을 본다."""
     key = _require_key()
     now = now or datetime.now(config.KST)
@@ -85,7 +85,7 @@ def fetch_daily(now: datetime | None = None, top: int = 5) -> dict:
     }
 
 
-def fetch_weekly(now: datetime | None = None, top: int = 5) -> dict:
+def _live_fetch_weekly(now: datetime | None = None, top: int = 5) -> dict:
     """지난 주말(금~일) 박스오피스. weekGb=1 이 '주말' 집계다."""
     key = _require_key()
     now = now or datetime.now(config.KST)
@@ -121,3 +121,15 @@ def fetch_weekly(now: datetime | None = None, top: int = 5) -> dict:
         "total_man": _man(sum(http.to_int(r.get("audiCnt")) or 0 for r in items)),
         "movie_count": len(items),
     }
+
+
+def fetch_daily(now: datetime | None = None, top: int = 5) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 사흘)."""
+    return cache.remember(
+        "boxoffice-daily", lambda: _live_fetch_daily(now, top), max_age_days=3)
+
+
+def fetch_weekly(now: datetime | None = None, top: int = 5) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 열흘)."""
+    return cache.remember(
+        "boxoffice-weekly", lambda: _live_fetch_weekly(now, top), max_age_days=10)

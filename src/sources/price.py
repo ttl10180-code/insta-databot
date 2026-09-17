@@ -15,7 +15,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -139,7 +139,7 @@ def _delta_text(diff: float | None) -> str:
     return f"전일 대비 {diff:+,.0f}원"
 
 
-def fetch(now: datetime | None = None) -> dict:
+def _live_fetch(now: datetime | None = None) -> dict:
     if not config.DATA_GO_KR_KEY:
         raise http.NoData("03", "DATA_GO_KR_KEY 가 없습니다")
 
@@ -203,3 +203,9 @@ def fetch(now: datetime | None = None) -> dict:
         "down_count": sum(1 for i in items if i["dir"] == "down"),
         "watch_count": len(items),
     }
+
+
+def fetch(now: datetime | None = None) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 나흘)."""
+    return cache.remember(
+        "price", lambda: _live_fetch(now), max_age_days=4)

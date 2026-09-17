@@ -8,7 +8,7 @@ import logging
 from datetime import datetime
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ def _parse_deal(it: dict, lawd_cd: str) -> dict | None:
     }
 
 
-def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
+def _live_fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
     lawd_cds = lawd_cds or config.REALESTATE_LAWD_CDS
     now = now or datetime.now(config.KST)
     ym = now.strftime("%Y%m")
@@ -149,3 +149,9 @@ def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
             "price": f"{t['man_won'] / 10000:.1f}억",
         } for t in top],
     }
+
+
+def fetch(lawd_cds: list[str] = None, now: datetime = None) -> dict:
+    """수집 실패 시 마지막 성공분으로 대신한다 (최대 두 주)."""
+    return cache.remember(
+        "realestate", lambda: _live_fetch(lawd_cds, now), max_age_days=14)

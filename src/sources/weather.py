@@ -5,7 +5,7 @@ import logging
 from datetime import datetime, timedelta
 
 from src import config
-from src.common import http
+from src.common import cache, http
 
 log = logging.getLogger(__name__)
 
@@ -35,10 +35,7 @@ def latest_base(now: datetime) -> tuple[str, str]:
     raise RuntimeError("발표 회차를 계산하지 못했습니다")
 
 
-def fetch(nx: int = None, ny: int = None, now: datetime = None) -> dict:
-    nx = config.WEATHER_NX if nx is None else nx
-    ny = config.WEATHER_NY if ny is None else ny
-    now = now or datetime.now(config.KST)
+def _live_items(nx: int, ny: int, now: datetime) -> list[dict]:
     base_date, base_time = latest_base(now)
     log.info("단기예보 조회 base=%s %s (nx=%s ny=%s)", base_date, base_time, nx, ny)
 
@@ -55,7 +52,21 @@ def fetch(nx: int = None, ny: int = None, now: datetime = None) -> dict:
             "ny": ny,
         },
     )
-    items = http.as_list(doc["response"]["body"]["items"]["item"])
+    return http.as_list(doc["response"]["body"]["items"]["item"])
+
+
+def fetch(nx: int = None, ny: int = None, now: datetime = None) -> dict:
+    """단기예보는 사흘치가 한 번에 온다. 그래서 여기서는 '가공한 결과' 가
+    아니라 '응답 원본' 을 캐시하고, 읽을 때 오늘 기준으로 다시 계산한다.
+
+    어제 받아둔 응답 안에도 오늘 예보가 들어 있으니, 이 경우 캐시로 만든
+    카드는 낡은 값이 아니라 그냥 맞는 값이다. (반대로 미세먼지 같은
+    실시간 관측값은 이렇게 할 수 없어서 아예 캐시하지 않는다.)"""
+    nx = config.WEATHER_NX if nx is None else nx
+    ny = config.WEATHER_NY if ny is None else ny
+    now = now or datetime.now(config.KST)
+    items = cache.remember(
+        "weather-raw", lambda: _live_items(nx, ny, now), max_age_days=2)
     return _shape(items, now)
 
 

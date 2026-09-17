@@ -15,8 +15,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from src import cards, config, sample
-from src.common import http, instagram, render
+from src import cards, collect, config, sample
+from src.common import cache, http, instagram, render
 
 logging.basicConfig(
     level=logging.INFO,
@@ -31,7 +31,13 @@ def make_card(kind: str, now: datetime, use_sample: bool, story: bool = False):
     if use_sample:
         template, ctx, caption = sample.build(kind, now)
     else:
+        cache.begin()
         template, ctx, caption = cards.CARDS[kind](now)
+        # 국내 서버가 안 닿아 지난 수집분으로 만든 카드라면, 그 사실을 카드에
+        # 적는다. 오래된 값을 오늘 값인 척 내보내지 않기 위해서다.
+        note = cache.stale_note()
+        if note:
+            ctx["source"] = f"{ctx.get('source', '')} · {note}".lstrip(" ·")
     stamp = now.strftime("%Y%m%d")
     path = render.render_card(template, ctx, config.OUT_DIR / f"{stamp}-{kind}.jpg")
     story_path = None
@@ -223,6 +229,9 @@ def main(argv=None) -> int:
 
     c = sub.add_parser("check", help="렌더 실패가 있었으면 실패로 끝낸다 (게시 이후에 호출)")
     c.set_defaults(func=cmd_check)
+
+    g = sub.add_parser("collect", help="발행 없이 수집만 해서 캐시에 쌓는다")
+    g.set_defaults(func=lambda _args: collect.run())
 
     args = p.parse_args(argv)
     return args.func(args)
