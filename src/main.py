@@ -15,8 +15,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from src import cards, collect, config, sample
-from src.common import cache, http, instagram, render
+from src import cards, collect, config, health, sample
+from src.common import cache, http, instagram, postlog, render
 
 logging.basicConfig(
     level=logging.INFO,
@@ -24,6 +24,12 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("databot")
+
+
+def _notice(message: str) -> None:
+    """깃허브 실행 화면에 노란 경고로 남긴다. 빨간 X 는 아니지만 보이기는 한다."""
+    log.warning(message)
+    print(f"::warning::{message}")
 
 
 def make_card(kind: str, now: datetime, use_sample: bool, story: bool = False):
@@ -163,7 +169,13 @@ def cmd_post(args) -> int:
             except Exception as e:                # noqa: BLE001
                 log.error("%s 카드 생성 실패, 건너뜁니다: %s", kind, e)
     if not made:
+        # 여기서 조용히 0 으로 끝나면, 실행은 초록불인데 아무것도 안 올라간
+        # 상태가 아무 데도 안 남는다. 실제로 9월 18일 실종자 카드가 이렇게
+        # 사라졌다. 실패로 만들지는 않는다 — 데이터가 정말 없는 날도 있다.
+        # 대신 눈에 보이게 남기고, 며칠씩 이어지면 health 가 잡는다.
         log.warning("올릴 카드가 없습니다. 게시를 건너뜁니다.")
+        _notice(f"아무것도 올리지 않았습니다 ({' '.join(args.kinds)}) — "
+                "만들어진 카드가 없습니다")
         return 0
 
     if config.DRY_RUN:
@@ -181,16 +193,21 @@ def cmd_post(args) -> int:
             log.error("캐러셀 게시 실패: %s", e)
             return 1
         print(f"✅ 캐러셀 게시 완료 media_id={media_id}")
+        postlog.record([kind for kind, _, _ in made])
         return 0
 
-    failed = 0
+    failed, posted = 0, []
     for kind, path, caption in made:
         try:
             media_id = instagram.publish_image(public_url(path), caption)
             print(f"✅ {kind} 게시 완료 media_id={media_id}")
+            posted.append(kind)
         except Exception as e:                    # noqa: BLE001
             log.error("%s 게시 실패: %s", kind, e)
             failed += 1
+    postlog.record(posted)
+    if not posted:
+        _notice(f"아무것도 올리지 않았습니다 ({' '.join(args.kinds)})")
     return 1 if failed else 0
 
 
@@ -232,6 +249,9 @@ def main(argv=None) -> int:
 
     g = sub.add_parser("collect", help="발행 없이 수집만 해서 캐시에 쌓는다")
     g.set_defaults(func=lambda _args: collect.run())
+
+    h = sub.add_parser("health", help="며칠째 안 올라간 카드가 있는지 본다")
+    h.set_defaults(func=lambda _args: health.run())
 
     args = p.parse_args(argv)
     return args.func(args)

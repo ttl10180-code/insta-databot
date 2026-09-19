@@ -1,0 +1,40 @@
+name: 발행 점검 (매일 밤)
+
+# 워크플로가 초록불인 것과 카드가 올라간 것은 다른 말이다.
+#
+# 수집이 '오늘은 데이터 없음' 을 돌려주면 그 카드는 조용히 건너뛰어지고 실행은
+# 성공으로 끝난다. 그 판단은 맞다 — 데이터가 정말 없는 날 빨간 X 가 뜨면 진짜
+# 고장과 구분이 안 된다. 문제는 그 대가로 '며칠째 안 올라갔다' 가 아무 데도
+# 안 보이게 됐다는 것이다. 9월 18일 실종자 카드가 실제로 그렇게 사라졌다.
+#
+# 그래서 실행 기록이 아니라 실제 발행 기록을 하루 한 번 본다. 하루 조용한 건
+# 정상이고 사흘 조용한 건 고장이다. 이 점검만큼은 시끄러워야 하므로, 선을
+# 넘은 카드가 있으면 빨간 X 를 띄운다.
+
+on:
+  schedule:
+    # 23:23 KST — 그날의 마지막 카드(실종자, 21:53 예정)까지 끝난 뒤.
+    - cron: '23 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read              # 읽기만 한다. 아무것도 밀지 않는다.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: 의존성 설치
+        run: pip install requests python-dotenv
+
+      - name: 점검
+        env:
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
+        run: python -m src.main health

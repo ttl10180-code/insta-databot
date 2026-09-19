@@ -147,6 +147,13 @@ jobs:
           python -m src.main post ${{ inputs.cards }} --reuse \
             ${{ inputs.carousel && '--carousel' || '' }}
 
+      # 발행 기록(cache/posted.json)은 '게시' 단계에서 쓰인다. 그런데 페이지
+      # 배포는 그 앞에 있어서, 여기서 한 번 더 밀지 않으면 기록이 러너와 함께
+      # 사라진다. 게시가 일부 실패해도 성공한 것만큼은 남겨야 하므로 always().
+      - name: 발행 기록 올리기
+        if: ${{ always() && !inputs.dry_run && steps.guard.outputs.done != 'true' }}
+        run: bash scripts/publish_pages.sh
+
       - name: 실패한 카드 확인
         # 렌더 단계에서 만들지 못한 카드가 있으면 여기서 빨간 X 를 띄운다.
         # 게시가 모두 끝난 뒤라서, 실패 한 장이 성공한 카드의 게시를 막지 않는다.

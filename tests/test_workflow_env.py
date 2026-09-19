@@ -33,7 +33,8 @@ def _runs(step, *needles) -> bool:
 # --sample 은 샘플 데이터로 디자인만 확인하는 경로라 수집도 캐시도 타지 않는다.
 CACHE_READERS = [
     (name, step) for name, step in _steps()
-    if _runs(step, "src.main render", "src.main post", "src.main collect")
+    if _runs(step, "src.main render", "src.main post", "src.main collect",
+                 "src.main health")
     and "--sample" not in str(step.get("run") or "")
 ]
 
