@@ -91,7 +91,14 @@ def load(name: str, max_age_days: float):
             raw = json.loads(local.read_text(encoding="utf-8"))
         except Exception:                       # noqa: BLE001
             raw = None
-    if raw is None and config.PUBLIC_BASE_URL:
+    if raw is None and not config.PUBLIC_BASE_URL:
+        # 여기서 조용히 None 을 돌려주면 '캐시가 없다' 와 '캐시를 읽을 주소를
+        # 모른다' 가 구분되지 않는다. 실제로 이 차이 때문에 9월 18일 아침
+        # 카드가 세 번 다 그냥 실패했다.
+        log.error("PUBLIC_BASE_URL 이 없어 %s 캐시를 읽을 수 없습니다. "
+                  "워크플로의 env 설정을 확인하세요.", name)
+        return None
+    if raw is None:
         try:
             r = requests.get(_url(name), timeout=READ_TIMEOUT)
             if r.status_code == 404:

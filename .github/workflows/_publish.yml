@@ -75,6 +75,9 @@ jobs:
       - name: 카드 생성
         if: steps.guard.outputs.done != 'true'
         env:
+          # 지난 수집분(gh-pages 의 cache/)을 읽어오는 단계다. 이 값이 없으면
+          # 캐시를 읽을 주소를 몰라서, 국내 서버가 안 닿을 때 조용히 포기한다.
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
           KR_RELAY_URL: ${{ secrets.KR_RELAY_URL }}
           KR_RELAY_KEY: ${{ secrets.KR_RELAY_KEY }}
           DATA_GO_KR_KEY: ${{ secrets.DATA_GO_KR_KEY }}
